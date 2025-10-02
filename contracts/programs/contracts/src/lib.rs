@@ -1,17 +1,16 @@
 use anchor_lang::prelude::*;
-use groth16_solana::groth16::Groth16Verifier;
 
-declare_id!("BuJQaP3qTAPgLrmyupbdv2R6EBgK9SnuEJd23HWQqBJv");
+declare_id!("ELqNcvWpY4L5qAe7P4PuEKMo86zrouKctZF3KuSysuYY");
 
 pub mod state;
 pub mod instructions;
 pub mod errors;
 pub mod groth16_verifier;
 pub mod compression;
+pub mod verification_keys;
 
 use instructions::*;
-use state::*;
-use errors::ErrorCode as ContractError;
+use errors::ErrorCode;
 use groth16_verifier::*;
 use compression::*;
 
@@ -77,8 +76,8 @@ pub mod contracts {
         let clock = Clock::get()?;
         
         // Verify proof length
-        require!(proof.len() == 256, ContractError::InvalidProof);
-        require!(public_inputs.len() > 0, ContractError::InvalidPublicInputs);
+        require!(proof.len() == 256, ErrorCode::InvalidProof);
+        require!(public_inputs.len() > 0, ErrorCode::InvalidPublicInputs);
         
         // Perform Groth16 verification
         let is_valid = verify_groth16_proof(
@@ -87,7 +86,7 @@ pub mod contracts {
             attribute_type,
         )?;
         
-        require!(is_valid, ContractError::InvalidProof);
+        require!(is_valid, ErrorCode::InvalidProof);
         
         // Mark attribute as verified (bitmap)
         identity.attributes_verified |= attribute_type;
@@ -134,7 +133,7 @@ pub mod contracts {
     ) -> Result<()> {
         let session = &mut ctx.accounts.session;
         let identity = &ctx.accounts.identity;
-        require!(identity.is_verified, ContractError::IdentityNotVerified);
+        require!(identity.is_verified, ErrorCode::IdentityNotFound);
         session.user = ctx.accounts.user.key();
         session.session_id = session_id;
         session.created_at = Clock::get()?.unix_timestamp;

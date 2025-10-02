@@ -2,45 +2,48 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("Unauthorized access to this resource")]
-    UnauthorizedAccess,
-    
-    #[msg("Invalid ZK proof provided")]
-    InvalidProof,
-    
-    #[msg("Invalid public inputs for verification")]
-    InvalidPublicInputs,
-    
-    #[msg("Identity not verified yet")]
-    IdentityNotVerified,
-    
-    #[msg("Identity commitment mismatch")]
-    CommitmentMismatch,
-    
-    #[msg("Session has expired")]
-    SessionExpired,
-    
-    #[msg("Session already exists")]
-    SessionAlreadyExists,
-    
-    #[msg("Merkle proof verification failed")]
-    MerkleProofFailed,
-    
-    #[msg("Attribute not verified")]
-    AttributeNotVerified,
-    
-    #[msg("Invalid attribute type")]
-    InvalidAttributeType,
+    #[msg("Invalid authority for this operation")]
+    InvalidAuthority,
     
     #[msg("Identity already registered")]
-    IdentityAlreadyExists,
+    IdentityAlreadyRegistered,
     
-    #[msg("Compression operation failed")]
+    #[msg("Identity not found")]
+    IdentityNotFound,
+    
+    #[msg("Invalid proof provided")]
+    InvalidProof,
+    
+    #[msg("Invalid public inputs")]
+    InvalidPublicInputs,
+    
+    #[msg("Proof verification failed")]
+    ProofVerificationFailed,
+    
+    #[msg("Invalid verification status")]
+    InvalidVerificationStatus,
+    
+    #[msg("Verification already exists")]
+    VerificationAlreadyExists,
+    
+    #[msg("Verification not found")]
+    VerificationNotFound,
+    
+    #[msg("Session expired")]
+    SessionExpired,
+    
+    #[msg("Invalid session")]
+    InvalidSession,
+    
+    #[msg("Compression error occurred")]
     CompressionError,
     
-    #[msg("Invalid nullifier")]
-    InvalidNullifier,
+    #[msg("Invalid compressed account")]
+    InvalidCompressedAccount,
     
     #[msg("Merkle tree error")]
     MerkleTreeError,
+    
+    #[msg("Unauthorized access to this resource")]
+    UnauthorizedAccess,
 }

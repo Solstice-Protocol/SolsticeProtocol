@@ -1,147 +1,154 @@
 use anchor_lang::prelude::*;
-use groth16_solana::groth16::Groth16Verifier;
+use groth16_solana::groth16::{Groth16Verifier, Groth16Verifyingkey};
 
-/// Verification keys for each circuit type
-/// These should be generated during circuit compilation and stored here
-pub struct VerificationKeys;
+// Import verification keys from separate module
+use crate::verification_keys::*;
 
-impl VerificationKeys {
-    /// Age proof verification key (BN254 curve)
-    pub const AGE_VK: &'static [u8] = &[
-        // This will be replaced with actual verification key from circuit compilation
-        // Format: prepared verification key from circom + snarkjs
-        // vk_gamma_abc_g1, alpha_g1_beta_g2, gamma_g2_neg_pc, delta_g2_neg_pc
-    ];
-
-    /// Nationality proof verification key
-    pub const NATIONALITY_VK: &'static [u8] = &[
-        // Prepared verification key for nationality circuit
-    ];
-
-    /// Uniqueness proof verification key
-    pub const UNIQUENESS_VK: &'static [u8] = &[
-        // Prepared verification key for uniqueness circuit
-    ];
-}
-
-/// Verify a Groth16 proof for the given attribute type
+/// Verify a Groth16 proof using BPF-optimized groth16-solana library
 /// 
 /// # Arguments
-/// * `proof` - 256-byte serialized Groth16 proof (compressed format)
-/// * `public_inputs` - Public signals/inputs for the circuit
+/// * `proof` - Serialized Groth16 proof (256 bytes: 64 bytes A, 128 bytes B, 64 bytes C)
+/// * `public_inputs` - Public signals/inputs as field elements (32 bytes each)
 /// * `attribute_type` - Type of attribute being verified (1=age, 2=nationality, 4=uniqueness)
 /// 
 /// # Returns
 /// * `Result<bool>` - True if proof is valid, error otherwise
 pub fn verify_groth16_proof(
-    proof: &[u8],
-    public_inputs: &[u8],
+    proof_bytes: &[u8],
+    public_inputs_bytes: &[u8],
     attribute_type: u8,
 ) -> Result<bool> {
-    // Select the appropriate verification key based on attribute type
-    let vk = match attribute_type {
-        1 => VerificationKeys::AGE_VK,
-        2 => VerificationKeys::NATIONALITY_VK,
-        4 => VerificationKeys::UNIQUENESS_VK,
+    // Select verification key based on attribute type
+    let vk_struct = match attribute_type {
+        1 => &AGE_PROOF_VK,
+        2 => &NATIONALITY_PROOF_VK,
+        4 => &UNIQUENESS_PROOF_VK,
         _ => return Err(error!(crate::errors::ErrorCode::InvalidPublicInputs)),
     };
 
-    // In production, this would use the actual Groth16 verifier
-    // For now, we'll implement the structure for when circuits are compiled
+    msg!("Verifying Groth16 proof for attribute type: {}", attribute_type);
     
-    // Development mode: Allow verification to pass for testing
-    // This should be REMOVED in production
-    #[cfg(feature = "dev-mode")]
-    {
-        msg!("⚠️  DEV MODE: Groth16 verification bypassed");
-        return Ok(true);
+    // Validate input lengths
+    require!(proof_bytes.len() == 256, crate::errors::ErrorCode::InvalidProof);
+    require!(!public_inputs_bytes.is_empty(), crate::errors::ErrorCode::InvalidPublicInputs);
+    require!(public_inputs_bytes.len() % 32 == 0, crate::errors::ErrorCode::InvalidPublicInputs);
+    
+    let num_inputs = public_inputs_bytes.len() / 32;
+    
+    // Split proof into A, B, C components
+    let proof_a: &[u8; 64] = proof_bytes[0..64].try_into()
+        .map_err(|_| error!(crate::errors::ErrorCode::InvalidProof))?;
+    let proof_b: &[u8; 128] = proof_bytes[64..192].try_into()
+        .map_err(|_| error!(crate::errors::ErrorCode::InvalidProof))?;
+    let proof_c: &[u8; 64] = proof_bytes[192..256].try_into()
+        .map_err(|_| error!(crate::errors::ErrorCode::InvalidProof))?;
+    
+    // Prepare verification key
+    let (alpha_g1, beta_g2, gamma_g2, delta_g2, ic_points) = prepare_verification_key(vk_struct);
+    
+    let vk = Groth16Verifyingkey {
+        nr_pubinputs: num_inputs,
+        vk_alpha_g1: alpha_g1,
+        vk_beta_g2: beta_g2,
+        vk_gamme_g2: gamma_g2,
+        vk_delta_g2: delta_g2,
+        vk_ic: &ic_points,
+    };
+    
+    // Dynamic dispatch based on number of inputs (we'll support up to 10 inputs)
+    let is_valid = match num_inputs {
+        1 => verify_with_inputs::<1>(proof_a, proof_b, proof_c, public_inputs_bytes, &vk)?,
+        2 => verify_with_inputs::<2>(proof_a, proof_b, proof_c, public_inputs_bytes, &vk)?,
+        3 => verify_with_inputs::<3>(proof_a, proof_b, proof_c, public_inputs_bytes, &vk)?,
+        4 => verify_with_inputs::<4>(proof_a, proof_b, proof_c, public_inputs_bytes, &vk)?,
+        5 => verify_with_inputs::<5>(proof_a, proof_b, proof_c, public_inputs_bytes, &vk)?,
+        _ => return Err(error!(crate::errors::ErrorCode::InvalidPublicInputs)),
+    };
+    
+    if is_valid {
+        msg!("✅ Groth16 proof verification successful");
+    } else {
+        msg!("❌ Groth16 proof verification failed");
+        return Err(error!(crate::errors::ErrorCode::ProofVerificationFailed));
     }
-
-    // Production verification using groth16-solana
-    #[cfg(not(feature = "dev-mode"))]
-    {
-        // Parse the proof components
-        // Groth16 proof consists of 3 curve points (A, B, C)
-        if proof.len() != 256 {
-            return Err(error!(crate::errors::ErrorCode::InvalidProof));
-        }
-
-        // Extract proof points (this is a simplified version)
-        // In reality, we need to properly deserialize the BN254 curve points
-        let proof_a = &proof[0..64];
-        let proof_b = &proof[64..192];
-        let proof_c = &proof[192..256];
-
-        // Prepare public inputs
-        // Public inputs must be properly serialized field elements
-        if public_inputs.is_empty() {
-            return Err(error!(crate::errors::ErrorCode::InvalidPublicInputs));
-        }
-
-        // Perform the pairing-based verification
-        // This uses the BN254 elliptic curve pairing
-        // e(A, B) = e(α, β) · e(L, γ) · e(C, δ)
-        // where L = vk_gamma_abc[0] + Σ(public_input[i] * vk_gamma_abc[i+1])
-        
-        msg!("Verifying Groth16 proof for attribute type: {}", attribute_type);
-        
-        // Actual verification call
-        let is_valid = verify_pairing(proof_a, proof_b, proof_c, public_inputs, vk)?;
-        
-        if is_valid {
-            msg!("✅ Groth16 proof verification successful");
-        } else {
-            msg!("❌ Groth16 proof verification failed");
-        }
-
-        Ok(is_valid)
-    }
+    
+    Ok(is_valid)
 }
 
-/// Perform the actual pairing check for Groth16
-/// This is the core verification algorithm
-#[cfg(not(feature = "dev-mode"))]
-fn verify_pairing(
-    _proof_a: &[u8],
-    _proof_b: &[u8],
-    _proof_c: &[u8],
-    _public_inputs: &[u8],
-    _vk: &[u8],
+/// Helper function to verify with specific number of inputs (compile-time constant)
+fn verify_with_inputs<const N: usize>(
+    proof_a: &[u8; 64],
+    proof_b: &[u8; 128],
+    proof_c: &[u8; 64],
+    public_inputs_bytes: &[u8],
+    vk: &Groth16Verifyingkey,
 ) -> Result<bool> {
-    // This would use the groth16-solana crate to perform the actual verification
-    // The verification involves:
-    // 1. Deserializing curve points from bytes
-    // 2. Computing the linear combination of public inputs with vk_gamma_abc
-    // 3. Performing the pairing equation check
+    // Convert public inputs to fixed-size array
+    let mut public_inputs = [[0u8; 32]; N];
+    for i in 0..N {
+        let start = i * 32;
+        let end = start + 32;
+        public_inputs[i].copy_from_slice(&public_inputs_bytes[start..end]);
+    }
     
-    // Placeholder until actual implementation with compiled circuits
-    msg!("Performing pairing-based verification...");
+    let mut verifier = Groth16Verifier::<N>::new(
+        proof_a,
+        proof_b,
+        proof_c,
+        &public_inputs,
+        vk,
+    ).map_err(|_| error!(crate::errors::ErrorCode::InvalidProof))?;
+    
+    // verify() returns Result<(), Error> - success means proof is valid
+    verifier.verify()
+        .map_err(|_| error!(crate::errors::ErrorCode::ProofVerificationFailed))?;
+    
     Ok(true)
 }
 
-/// Helper to deserialize BN254 curve points from compressed format
-#[cfg(not(feature = "dev-mode"))]
-fn deserialize_curve_point(_bytes: &[u8]) -> Result<()> {
-    // Use ark-serialize to deserialize BN254 curve points
-    // This ensures the points are valid and on the curve
-    Ok(())
+/// Convert verification key to format expected by groth16-solana
+fn prepare_verification_key(vk: &VerificationKey) -> ([u8; 64], [u8; 128], [u8; 128], [u8; 128], Vec<[u8; 64]>) {
+    // alpha_g1: 2 * 32 bytes = 64 bytes
+    let mut alpha_g1 = [0u8; 64];
+    alpha_g1[..32].copy_from_slice(&vk.alpha_g1[0]);
+    alpha_g1[32..].copy_from_slice(&vk.alpha_g1[1]);
+    
+    // beta_g2: 4 * 32 bytes = 128 bytes
+    let mut beta_g2 = [0u8; 128];
+    beta_g2[0..32].copy_from_slice(&vk.beta_g2[0]);
+    beta_g2[32..64].copy_from_slice(&vk.beta_g2[1]);
+    beta_g2[64..96].copy_from_slice(&vk.beta_g2[2]);
+    beta_g2[96..128].copy_from_slice(&vk.beta_g2[3]);
+    
+    // gamma_g2: 4 * 32 bytes = 128 bytes
+    let mut gamma_g2 = [0u8; 128];
+    gamma_g2[0..32].copy_from_slice(&vk.gamma_g2[0]);
+    gamma_g2[32..64].copy_from_slice(&vk.gamma_g2[1]);
+    gamma_g2[64..96].copy_from_slice(&vk.gamma_g2[2]);
+    gamma_g2[96..128].copy_from_slice(&vk.gamma_g2[3]);
+    
+    // delta_g2: 4 * 32 bytes = 128 bytes
+    let mut delta_g2 = [0u8; 128];
+    delta_g2[0..32].copy_from_slice(&vk.delta_g2[0]);
+    delta_g2[32..64].copy_from_slice(&vk.delta_g2[1]);
+    delta_g2[64..96].copy_from_slice(&vk.delta_g2[2]);
+    delta_g2[96..128].copy_from_slice(&vk.delta_g2[3]);
+    
+    // IC points: each is 2 * 32 bytes = 64 bytes
+    let mut ic_points = Vec::with_capacity(vk.ic.len());
+    for ic_point in vk.ic {
+        let mut point = [0u8; 64];
+        point[..32].copy_from_slice(&ic_point[0]);
+        point[32..].copy_from_slice(&ic_point[1]);
+        ic_points.push(point);
+    }
+    
+    (alpha_g1, beta_g2, gamma_g2, delta_g2, ic_points)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_verify_age_proof() {
-        // Mock proof data (in production, this would be a real proof)
-        let proof = vec![0u8; 256];
-        let public_inputs = vec![1u8; 32]; // Mock commitment hash
-        
-        let result = verify_groth16_proof(&proof, &public_inputs, 1);
-        
-        #[cfg(feature = "dev-mode")]
-        assert!(result.is_ok() && result.unwrap());
-    }
 
     #[test]
     fn test_invalid_attribute_type() {
@@ -151,15 +158,13 @@ mod tests {
         let result = verify_groth16_proof(&proof, &public_inputs, 99);
         assert!(result.is_err());
     }
-
+    
     #[test]
-    fn test_invalid_proof_length() {
-        let proof = vec![0u8; 100]; // Wrong length
+    fn test_proof_length_validation() {
+        let proof = vec![0u8; 100]; // Invalid length
         let public_inputs = vec![1u8; 32];
         
         let result = verify_groth16_proof(&proof, &public_inputs, 1);
-        
-        #[cfg(not(feature = "dev-mode"))]
         assert!(result.is_err());
     }
 }
