@@ -66,7 +66,7 @@ router.post('/register', async (req, res) => {
             wallet_address: walletAddress,
             identity_commitment: commitment,
             merkle_root: merkleRoot,
-            tx_signature: txSignature,
+            transaction_signature: txSignature,
             is_verified: false
         });
 

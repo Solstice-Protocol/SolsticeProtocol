@@ -11,14 +11,14 @@ export async function storeIdentity(identityData) {
             wallet_address, 
             identity_commitment, 
             merkle_root, 
-            tx_signature
+            transaction_signature
         )
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (wallet_address) 
         DO UPDATE SET 
             identity_commitment = EXCLUDED.identity_commitment,
             merkle_root = EXCLUDED.merkle_root,
-            tx_signature = EXCLUDED.tx_signature,
+            transaction_signature = EXCLUDED.transaction_signature,
             updated_at = CURRENT_TIMESTAMP
         RETURNING *
     `;
@@ -27,7 +27,7 @@ export async function storeIdentity(identityData) {
         identityData.wallet_address,
         identityData.identity_commitment,
         identityData.merkle_root,
-        identityData.tx_signature
+        identityData.transaction_signature
     ];
     
     const result = await pool.query(query, values);
@@ -61,7 +61,7 @@ export async function updateIdentityVerification(walletAddress, attributeBit, tx
             is_verified = TRUE,
             verification_timestamp = EXTRACT(EPOCH FROM NOW())::BIGINT,
             attributes_verified = attributes_verified | $2,
-            tx_signature = $3,
+            transaction_signature = $3,
             updated_at = CURRENT_TIMESTAMP
         WHERE wallet_address = $1
         RETURNING *
@@ -93,7 +93,7 @@ export async function storeVerificationProof(proofData) {
             proof_hash,
             public_inputs_hash,
             attribute_type,
-            tx_signature,
+            transaction_signature,
             verifier_address
         )
         VALUES ($1, $2, $3, $4, $5, $6)
@@ -105,7 +105,7 @@ export async function storeVerificationProof(proofData) {
         proofData.proof_hash,
         proofData.public_inputs_hash,
         proofData.attribute_type,
-        proofData.tx_signature,
+        proofData.transaction_signature,
         proofData.verifier_address
     ];
     
