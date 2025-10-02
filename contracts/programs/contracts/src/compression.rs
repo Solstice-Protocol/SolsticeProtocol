@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
-// use light_sdk::compressed_account::*;
-// use light_hasher::Poseidon;
+use anchor_lang::solana_program::keccak;
 
 /// Light Protocol ZK Compression integration
 /// This module provides compression utilities for reducing on-chain storage costs
+/// Note: Using Keccak for now until proper Poseidon integration is set up
 
 /// Compressed account state for Identity
 /// Using Light Protocol's ZK Compression reduces storage costs by 5000x
@@ -46,17 +46,11 @@ pub fn compress_identity_data(
     data.extend_from_slice(identity_commitment);
     data.extend_from_slice(merkle_root);
     
-    // In production, use Light Protocol's Poseidon hasher
-    // let hasher = Poseidon::new();
-    // let state_hash = hasher.hash(&data)?;
+    // Use keccak hash (will be replaced with Poseidon for production ZK circuits)
+    let hash_result = keccak::hash(&data);
+    let state_hash = hash_result.to_bytes();
     
-    // Development placeholder
-    let mut state_hash = [0u8; 32];
-    for (i, chunk) in data.chunks(32).enumerate() {
-        for (j, &byte) in chunk.iter().enumerate() {
-            state_hash[j] ^= byte.wrapping_add(i as u8);
-        }
-    }
+    msg!("Compressed identity data with state hash: {:?}", state_hash);
     
     Ok(state_hash)
 }
@@ -73,11 +67,11 @@ pub fn generate_nullifier(
     data.extend_from_slice(identity_commitment);
     data.extend_from_slice(secret);
     
-    // Development placeholder
-    let mut nullifier = [0u8; 32];
-    for (i, &byte) in data.iter().enumerate() {
-        nullifier[i % 32] ^= byte.wrapping_mul(i as u8 + 1);
-    }
+    // Use keccak hash for nullifier (will be replaced with Poseidon for production ZK circuits)
+    let hash_result = keccak::hash(&data);
+    let nullifier = hash_result.to_bytes();
+    
+    msg!("Generated nullifier for identity");
     
     Ok(nullifier)
 }
@@ -91,7 +85,7 @@ pub fn verify_compressed_identity(
     // Verify that the compressed state matches the Merkle root
     // This uses a ZK proof to verify inclusion without revealing the data
     
-    require!(proof.len() > 0, crate::errors::ContractError::InvalidProof);
+    require!(proof.len() > 0, crate::errors::ErrorCode::InvalidProof);
     
     msg!("Verifying compressed identity with state hash: {:?}", compressed_identity.state_hash);
     

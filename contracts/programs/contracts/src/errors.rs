@@ -34,4 +34,13 @@ pub enum ErrorCode {
     
     #[msg("Identity already registered")]
     IdentityAlreadyExists,
+    
+    #[msg("Compression operation failed")]
+    CompressionError,
+    
+    #[msg("Invalid nullifier")]
+    InvalidNullifier,
+    
+    #[msg("Merkle tree error")]
+    MerkleTreeError,
 }

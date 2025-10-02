@@ -11,7 +11,7 @@ pub mod compression;
 
 use instructions::*;
 use state::*;
-use errors::*;
+use errors::ErrorCode as ContractError;
 use groth16_verifier::*;
 use compression::*;
 

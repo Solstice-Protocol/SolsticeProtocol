@@ -43,7 +43,7 @@ pub fn verify_groth16_proof(
         1 => VerificationKeys::AGE_VK,
         2 => VerificationKeys::NATIONALITY_VK,
         4 => VerificationKeys::UNIQUENESS_VK,
-        _ => return Err(error!(crate::errors::ContractError::InvalidPublicInputs)),
+        _ => return Err(error!(crate::errors::ErrorCode::InvalidPublicInputs)),
     };
 
     // In production, this would use the actual Groth16 verifier
@@ -63,7 +63,7 @@ pub fn verify_groth16_proof(
         // Parse the proof components
         // Groth16 proof consists of 3 curve points (A, B, C)
         if proof.len() != 256 {
-            return Err(error!(crate::errors::ContractError::InvalidProof));
+            return Err(error!(crate::errors::ErrorCode::InvalidProof));
         }
 
         // Extract proof points (this is a simplified version)
@@ -75,7 +75,7 @@ pub fn verify_groth16_proof(
         // Prepare public inputs
         // Public inputs must be properly serialized field elements
         if public_inputs.is_empty() {
-            return Err(error!(crate::errors::ContractError::InvalidPublicInputs));
+            return Err(error!(crate::errors::ErrorCode::InvalidPublicInputs));
         }
 
         // Perform the pairing-based verification
