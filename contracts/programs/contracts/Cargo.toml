@@ -19,4 +19,11 @@ idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
 anchor-lang = "0.31.1"
+light-sdk = "0.12.0"
+light-hasher = "0.6.0"
+light-verifier = "0.6.0"
+groth16-solana = "0.0.7"
+ark-bn254 = "0.4.0"
+ark-serialize = "0.4.0"
+ark-ff = "0.4.0"
 

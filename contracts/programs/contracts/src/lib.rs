@@ -1,14 +1,19 @@
 use anchor_lang::prelude::*;
+use groth16_solana::groth16::Groth16Verifier;
 
 declare_id!("BuJQaP3qTAPgLrmyupbdv2R6EBgK9SnuEJd23HWQqBJv");
 
 pub mod state;
 pub mod instructions;
 pub mod errors;
+pub mod groth16_verifier;
+pub mod compression;
 
 use instructions::*;
 use state::*;
 use errors::*;
+use groth16_verifier::*;
+use compression::*;
 
 #[program]
 pub mod contracts {
@@ -25,7 +30,7 @@ pub mod contracts {
         Ok(())
     }
 
-    /// Register a new identity with compressed commitment
+    /// Register a new identity with compressed commitment using Light Protocol
     pub fn register_identity(
         ctx: Context<RegisterIdentity>,
         identity_commitment: [u8; 32],
@@ -33,6 +38,13 @@ pub mod contracts {
     ) -> Result<()> {
         let identity = &mut ctx.accounts.identity;
         let registry = &mut ctx.accounts.registry;
+        
+        // Compress identity data using Light Protocol
+        let compressed_state = compress_identity_data(
+            ctx.accounts.user.key(),
+            &identity_commitment,
+            &merkle_root,
+        )?;
         
         identity.owner = ctx.accounts.user.key();
         identity.identity_commitment = identity_commitment;
@@ -45,10 +57,16 @@ pub mod contracts {
         registry.total_identities += 1;
         
         msg!("Identity registered for user: {:?}", ctx.accounts.user.key());
+        msg!("Compressed state hash: {:?}", compressed_state);
+        
+        // Log compression savings
+        let (bytes_saved, percentage) = calculate_compression_savings();
+        msg!("Storage savings: {} bytes ({}%)", bytes_saved, percentage);
+        
         Ok(())
     }
 
-    /// Verify identity with ZK proof
+    /// Verify identity with ZK proof using Groth16
     pub fn verify_identity(
         ctx: Context<VerifyIdentity>,
         proof: Vec<u8>,
@@ -58,9 +76,18 @@ pub mod contracts {
         let identity = &mut ctx.accounts.identity;
         let clock = Clock::get()?;
         
-        // TODO: Implement actual Groth16 proof verification
-        require!(proof.len() > 0, ContractError::InvalidProof);
+        // Verify proof length
+        require!(proof.len() == 256, ContractError::InvalidProof);
         require!(public_inputs.len() > 0, ContractError::InvalidPublicInputs);
+        
+        // Perform Groth16 verification
+        let is_valid = verify_groth16_proof(
+            &proof,
+            &public_inputs,
+            attribute_type,
+        )?;
+        
+        require!(is_valid, ContractError::InvalidProof);
         
         // Mark attribute as verified (bitmap)
         identity.attributes_verified |= attribute_type;
