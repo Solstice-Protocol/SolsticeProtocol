@@ -1,0 +1,74 @@
+# Zero-Knowledge Circuits (Circom/SnarkJS)
+
+# ============================================
+# Node.js
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+package-lock.json
+
+# ============================================
+# Powers of Tau (Large Files)
+# ============================================
+*.ptau
+powersOfTau*.ptau
+hermez*.ptau
+
+# ============================================
+# Circuit Build Artifacts
+# ============================================
+build/
+*_js/
+*.r1cs
+*.wasm
+*.sym
+
+# ============================================
+# Proving & Verification Keys
+# ============================================
+*.zkey
+proving_key.zkey
+*_final.zkey
+verification_key.json
+circuit_final.zkey
+
+# ============================================
+# Witness Files
+# ============================================
+witness.wtns
+*.wtns
+
+# ============================================
+# Proof Files (Test Artifacts)
+# ============================================
+proof.json
+public.json
+input.json
+*.proof
+
+# ============================================
+# Editor Files
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+Thumbs.db
+
+# ============================================
+# Logs
+# ============================================
+*.log
+
+# ============================================
+# Keep These (DO NOT IGNORE)
+# ============================================
+# !circuits/*.circom (circuit source code)
+# !scripts/*.js (build/test scripts)
+# !package.json (dependencies)

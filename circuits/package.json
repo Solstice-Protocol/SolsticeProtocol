@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Zero-knowledge circuits for Solstice Protocol",
   "scripts": {
-    "compile:age": "circom age_proof.circom --r1cs --wasm --sym -o build",
-    "compile:nationality": "circom nationality_proof.circom --r1cs --wasm --sym -o build",
-    "compile:uniqueness": "circom uniqueness_proof.circom --r1cs --wasm --sym -o build",
+    "compile:age": "circom age_proof.circom --r1cs --wasm --sym -o build -l node_modules",
+    "compile:nationality": "circom nationality_proof.circom --r1cs --wasm --sym -o build -l node_modules",
+    "compile:uniqueness": "circom uniqueness_proof.circom --r1cs --wasm --sym -o build -l node_modules",
     "compile:all": "npm run compile:age && npm run compile:nationality && npm run compile:uniqueness",
     "setup:age": "cd build && snarkjs groth16 setup age_proof.r1cs ../powersOfTau28_hez_final_15.ptau age_proof_0000.zkey && snarkjs zkey contribute age_proof_0000.zkey age_proof_final.zkey --name='Solstice' -v -e='random entropy' && snarkjs zkey export verificationkey age_proof_final.zkey age_proof_verification_key.json",
     "setup:nationality": "cd build && snarkjs groth16 setup nationality_proof.r1cs ../powersOfTau28_hez_final_15.ptau nationality_proof_0000.zkey && snarkjs zkey contribute nationality_proof_0000.zkey nationality_proof_final.zkey --name='Solstice' -v -e='random entropy' && snarkjs zkey export verificationkey nationality_proof_final.zkey nationality_proof_verification_key.json",
