@@ -13,22 +13,22 @@ async function main() {
     PROGRAM_ID
   );
   
-  console.log('🔍 Identity PDA:', identityPda.toString());
+  console.log('Identity PDA:', identityPda.toString());
   
   const accountInfo = await connection.getAccountInfo(identityPda);
   
   if (accountInfo) {
-    console.log('✅ Identity account ALREADY EXISTS!');
+    console.log('Identity account ALREADY EXISTS!');
     console.log('   Owner:', accountInfo.owner.toString());
     console.log('   Data length:', accountInfo.data.length, 'bytes');
     console.log('   Lamports:', accountInfo.lamports);
-    console.log('\n⚠️  Account already exists! Need to use update or close+recreate.');
+    console.log('\n Account already exists! Need to use update or close+recreate.');
     
     // Show account data
     console.log('\nAccount data (hex):');
     console.log(accountInfo.data.toString('hex').slice(0, 200) + '...');
   } else {
-    console.log('❌ Identity account does NOT exist (ready for init)');
+    console.log('Identity account does NOT exist (ready for init)');
   }
 }
 

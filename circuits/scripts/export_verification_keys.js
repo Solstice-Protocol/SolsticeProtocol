@@ -79,12 +79,12 @@ async function exportVerificationKeys() {
         const vkeyPath = path.join(BUILD_DIR, `${circuit}_verification_key.json`);
         
         if (!fs.existsSync(vkeyPath)) {
-            console.warn(`⚠️  Warning: ${circuit}_verification_key.json not found`);
+            console.warn(` Warning: ${circuit}_verification_key.json not found`);
             console.warn(`   Run 'npm run setup:${circuit.split('_')[0]}' first\n`);
             continue;
         }
         
-        console.log(`📄 Processing ${circuit}...`);
+        console.log(`Processing ${circuit}...`);
         
         // Read verification key
         const vkey = JSON.parse(fs.readFileSync(vkeyPath, 'utf8'));
@@ -96,12 +96,12 @@ async function exportVerificationKeys() {
         const rustConst = generateRustConst(circuit, vkeyBytes);
         rustConsts.push(rustConst);
         
-        console.log(`✅ Exported ${circuit} verification key`);
+        console.log(`Exported ${circuit} verification key`);
         console.log(`   Size: ${vkeyBytes.length} bytes\n`);
     }
     
     if (rustConsts.length === 0) {
-        console.error('❌ No verification keys found!');
+        console.error('No verification keys found!');
         console.error('   Run circuit compilation and setup first:');
         console.error('   npm run compile:all && npm run setup:all\n');
         process.exit(1);
@@ -118,10 +118,10 @@ ${rustConsts.join('\n\n')}
     const outputPath = path.join(OUTPUT_DIR, 'verification_keys.rs');
     fs.writeFileSync(outputPath, rustContent);
     
-    console.log('✅ Verification keys exported successfully!');
+    console.log('Verification keys exported successfully!');
     console.log(`📁 Output: ${outputPath}\n`);
     
-    console.log('📋 Next steps:');
+    console.log('Next steps:');
     console.log('   1. Update groth16_verifier.rs to use these constants');
     console.log('   2. Rebuild the Solana program: cd contracts && anchor build');
     console.log('   3. Deploy to devnet: anchor deploy --provider.cluster devnet\n');
@@ -129,6 +129,6 @@ ${rustConsts.join('\n\n')}
 
 // Run the export
 exportVerificationKeys().catch(err => {
-    console.error('❌ Error:', err);
+    console.error('Error:', err);
     process.exit(1);
 });

@@ -42,7 +42,7 @@ export async function generateAgeProof(
   ageThreshold: number = 18,
   nonce: string
 ): Promise<ProofData> {
-  console.log('🔐 Generating age proof...');
+  console.log(' Generating age proof...');
   console.log('   DOB:', dateOfBirth, 'Threshold:', ageThreshold);
   
   try {
@@ -102,7 +102,7 @@ export async function generateAgeProof(
       CIRCUITS.age.zkey
     );
     
-    console.log('✅ Age proof generated!');
+    console.log('Age proof generated!');
     console.log('   Proof size:', JSON.stringify(proof).length, 'bytes');
     
     return {
@@ -111,7 +111,7 @@ export async function generateAgeProof(
       attributeType: 'age'
     };
   } catch (error) {
-    console.error('❌ Failed to generate age proof:', error);
+    console.error('Failed to generate age proof:', error);
     throw new Error('Age proof generation failed');
   }
 }
@@ -124,7 +124,7 @@ export async function generateNationalityProof(
   allowedNationality: string,
   nonce: string
 ): Promise<ProofData> {
-  console.log('🔐 Generating nationality proof...');
+  console.log(' Generating nationality proof...');
   console.log('   Nationality:', nationality, 'Allowed:', allowedNationality);
   
   try {
@@ -163,7 +163,7 @@ export async function generateNationalityProof(
       CIRCUITS.nationality.zkey
     );
     
-    console.log('✅ Nationality proof generated!');
+    console.log('Nationality proof generated!');
     console.log('   Proof size:', JSON.stringify(proof).length, 'bytes');
     
     return {
@@ -172,7 +172,7 @@ export async function generateNationalityProof(
       attributeType: 'nationality'
     };
   } catch (error) {
-    console.error('❌ Failed to generate nationality proof:', error);
+    console.error('Failed to generate nationality proof:', error);
     throw new Error('Nationality proof generation failed');
   }
 }
@@ -184,7 +184,7 @@ export async function generateUniquenessProof(
   aadhaarNumber: string,
   nonce: string
 ): Promise<ProofData> {
-  console.log('🔐 Generating uniqueness proof...');
+  console.log(' Generating uniqueness proof...');
   console.log('   Aadhaar (masked):', aadhaarNumber.slice(-4));
   
   try {
@@ -230,7 +230,7 @@ export async function generateUniquenessProof(
       CIRCUITS.uniqueness.zkey
     );
     
-    console.log('✅ Uniqueness proof generated!');
+    console.log('Uniqueness proof generated!');
     console.log('   Proof size:', JSON.stringify(proof).length, 'bytes');
     
     return {
@@ -239,7 +239,7 @@ export async function generateUniquenessProof(
       attributeType: 'uniqueness'
     };
   } catch (error) {
-    console.error('❌ Failed to generate uniqueness proof:', error);
+    console.error('Failed to generate uniqueness proof:', error);
     throw new Error('Uniqueness proof generation failed');
   }
 }
@@ -265,7 +265,7 @@ export async function generateAllProofs(
   uniquenessProof: ProofData | null;
   errors: string[];
 }> {
-  console.log('🚀 Auto-generating all ZK proofs...');
+  console.log('Auto-generating all ZK proofs...');
   
   const results = {
     ageProof: null as ProofData | null,
@@ -320,9 +320,9 @@ export async function generateAllProofs(
     results.uniquenessProof
   ].filter(Boolean).length;
   
-  console.log(`✅ Generated ${successCount} proofs successfully`);
+  console.log(`Generated ${successCount} proofs successfully`);
   if (results.errors.length > 0) {
-    console.warn('⚠️ Some proofs failed:', results.errors);
+    console.warn('Some proofs failed:', results.errors);
   }
   
   return results;
@@ -342,7 +342,7 @@ export async function verifyProofLocally(
     
     const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
     
-    console.log(`${isValid ? '✅' : '❌'} ${attributeType} proof verification:`, isValid);
+    console.log(`${isValid ? '' : ''} ${attributeType} proof verification:`, isValid);
     
     return isValid;
   } catch (error) {

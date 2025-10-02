@@ -20,24 +20,24 @@ async function testAgeProof() {
     const vkeyPath = path.join(BUILD_DIR, 'age_proof_verification_key.json');
     
     if (!fs.existsSync(wasmPath)) {
-        console.error('❌ WASM file not found:', wasmPath);
+        console.error('WASM file not found:', wasmPath);
         console.error('   Run: npm run compile:age');
         process.exit(1);
     }
     
     if (!fs.existsSync(zkeyPath)) {
-        console.error('❌ Proving key not found:', zkeyPath);
+        console.error('Proving key not found:', zkeyPath);
         console.error('   Run: npm run setup:age');
         process.exit(1);
     }
     
     if (!fs.existsSync(vkeyPath)) {
-        console.error('❌ Verification key not found:', vkeyPath);
+        console.error('Verification key not found:', vkeyPath);
         console.error('   Run: npm run setup:age');
         process.exit(1);
     }
     
-    console.log('✅ All circuit files found\n');
+    console.log('All circuit files found\n');
     
     // Test Case 1: User is 25, proving they are above 18
     console.log('Test Case 1: Age Verification (25 >= 18)');
@@ -64,7 +64,7 @@ async function testAgeProof() {
         );
         
         const proofTime = Date.now() - startTime;
-        console.log(`✅ Proof generated in ${proofTime}ms`);
+        console.log(`Proof generated in ${proofTime}ms`);
         
         console.log('\nPublic Signals:', publicSignals);
         console.log('Proof size:', JSON.stringify(proof).length, 'bytes');
@@ -77,17 +77,17 @@ async function testAgeProof() {
         const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
         
         const verifyTime = Date.now() - verifyStartTime;
-        console.log(`${isValid ? '✅' : '❌'} Proof ${isValid ? 'verified' : 'failed'} in ${verifyTime}ms`);
+        console.log(`${isValid ? '' : ''} Proof ${isValid ? 'verified' : 'failed'} in ${verifyTime}ms`);
         
         if (!isValid) {
-            console.error('❌ Test Case 1 FAILED');
+            console.error('Test Case 1 FAILED');
             process.exit(1);
         }
         
-        console.log('✅ Test Case 1 PASSED\n');
+        console.log('Test Case 1 PASSED\n');
         
     } catch (error) {
-        console.error('❌ Error in Test Case 1:', error.message);
+        console.error('Error in Test Case 1:', error.message);
         process.exit(1);
     }
     
@@ -117,7 +117,7 @@ async function testAgeProof() {
         );
         
         const proofTime = Date.now() - startTime;
-        console.log(`✅ Proof generated in ${proofTime}ms`);
+        console.log(`Proof generated in ${proofTime}ms`);
         
         console.log('\nPublic Signals:', publicSignals);
         
@@ -129,17 +129,17 @@ async function testAgeProof() {
         const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
         
         const verifyTime = Date.now() - verifyStartTime;
-        console.log(`${isValid ? '✅' : '❌'} Proof ${isValid ? 'verified' : 'failed'} in ${verifyTime}ms`);
+        console.log(`${isValid ? '' : ''} Proof ${isValid ? 'verified' : 'failed'} in ${verifyTime}ms`);
         
         if (!isValid) {
-            console.error('❌ Test Case 2 FAILED');
+            console.error('Test Case 2 FAILED');
             process.exit(1);
         }
         
-        console.log('✅ Test Case 2 PASSED\n');
+        console.log('Test Case 2 PASSED\n');
         
     } catch (error) {
-        console.error('❌ Error in Test Case 2:', error.message);
+        console.error('Error in Test Case 2:', error.message);
         process.exit(1);
     }
     
@@ -167,26 +167,26 @@ async function testAgeProof() {
             zkeyPath
         );
         
-        console.error('❌ Test Case 3 FAILED: Proof should not have been generated');
+        console.error('Test Case 3 FAILED: Proof should not have been generated');
         process.exit(1);
         
     } catch (error) {
-        console.log('✅ Expected failure:', error.message.substring(0, 100));
-        console.log('✅ Test Case 3 PASSED (correctly rejected)\n');
+        console.log('Expected failure:', error.message.substring(0, 100));
+        console.log('Test Case 3 PASSED (correctly rejected)\n');
     }
     
     // Summary
     console.log('\n' + '='.repeat(50));
-    console.log('📊 Test Summary');
+    console.log('Test Summary');
     console.log('='.repeat(50));
-    console.log('✅ All tests passed!');
-    console.log('✅ Age proof circuit is working correctly');
-    console.log('✅ Groth16 verification is functioning');
+    console.log('All tests passed!');
+    console.log('Age proof circuit is working correctly');
+    console.log('Groth16 verification is functioning');
     console.log('\n🎉 Circuit is ready for production use!\n');
 }
 
 // Run the test
 testAgeProof().catch(err => {
-    console.error('❌ Fatal error:', err);
+    console.error('Fatal error:', err);
     process.exit(1);
 });

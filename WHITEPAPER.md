@@ -642,11 +642,11 @@ pub enum ErrorCode {
 - Cannot break cryptographic primitives
 
 **Security Guarantees**:
-- ✅ Privacy: Zero-knowledge proofs reveal no personal data
-- ✅ Integrity: UIDAI signatures prevent forgery
-- ✅ Sybil Resistance: Nullifiers prevent double-registration
-- ✅ Unlinkability: Different nullifiers per app
-- ✅ Availability: Decentralized Solana blockchain
+-   Privacy: Zero-knowledge proofs reveal no personal data
+-   Integrity: UIDAI signatures prevent forgery
+-   Sybil Resistance: Nullifiers prevent double-registration
+-   Unlinkability: Different nullifiers per app
+-   Availability: Decentralized Solana blockchain
 
 ### 7.2 Attack Vectors & Mitigations
 

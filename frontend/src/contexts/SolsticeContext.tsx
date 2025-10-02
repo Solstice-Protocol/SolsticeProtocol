@@ -70,7 +70,7 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Registering identity on-chain...');
+      console.log('Registering identity on-chain...');
       console.log('📍 Wallet:', wallet.publicKey.toString());
       console.log('📍 Commitment:', commitment);
       console.log('📍 Merkle Root:', merkleRoot);
@@ -79,7 +79,7 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       const provider = createProvider(wallet as AnchorWallet, connection);
       const program = getSolsticeProgram(provider);
       
-      console.log('✅ Program initialized:', program.programId.toString());
+      console.log('Program initialized:', program.programId.toString());
 
       // Register identity on-chain with actual transaction
       const txSignature = await registerIdentityOnChain(
@@ -89,7 +89,7 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
         merkleRoot
       );
 
-      console.log('✅ Identity registered on-chain:', txSignature);
+      console.log('Identity registered on-chain:', txSignature);
 
       // Update backend database with real transaction signature
       const response = await axios.post(`${API_BASE_URL}/identity/register`, {
@@ -101,13 +101,13 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
 
       if (response.data.success) {
         await fetchIdentity(wallet.publicKey.toString());
-        console.log('✅ Backend database updated');
+        console.log('Backend database updated');
         return true;
       }
 
       return false;
     } catch (err: any) {
-      console.error('❌ Registration failed:', err);
+      console.error('Registration failed:', err);
       
       // Handle specific Solana errors
       let errorMsg = err.response?.data?.error || err.message || 'Failed to register identity';
@@ -135,7 +135,7 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       setError(null);
 
       // Generate proof locally in browser (privacy-preserving!)
-      console.log('🔐 Generating proof locally in browser...');
+      console.log(' Generating proof locally in browser...');
       console.log('   Type:', attributeType);
       
       // TODO: Implement browser-based proof generation with snarkjs
@@ -161,7 +161,7 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Verifying proof off-chain...');
+      console.log('Verifying proof off-chain...');
 
       // Verify proof off-chain first
       const verifyResponse = await axios.post(`${API_BASE_URL}/proof/verify`, {
@@ -171,13 +171,13 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!verifyResponse.data.isValid) {
-        console.error('❌ Proof verification failed');
+        console.error('Proof verification failed');
         setError('Invalid proof');
         return false;
       }
 
-      console.log('✅ Proof verified off-chain');
-      console.log('🔄 Submitting proof on-chain...');
+      console.log('Proof verified off-chain');
+      console.log('Submitting proof on-chain...');
 
       // Create Anchor provider and program
       const provider = createProvider(wallet as AnchorWallet, connection);
@@ -192,7 +192,7 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
         attributeType as 'age' | 'nationality' | 'uniqueness'
       );
 
-      console.log('✅ Proof verified on-chain:', txSignature);
+      console.log('Proof verified on-chain:', txSignature);
 
       // Update backend with real transaction signature
       const submitResponse = await axios.post(`${API_BASE_URL}/proof/submit`, {
@@ -203,13 +203,13 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
 
       if (submitResponse.data.success) {
         await fetchIdentity(wallet.publicKey.toString());
-        console.log('✅ Backend database updated');
+        console.log('Backend database updated');
         return true;
       }
 
       return false;
     } catch (err: any) {
-      console.error('❌ Verification failed:', err);
+      console.error('Verification failed:', err);
       const errorMsg = err.response?.data?.error || err.message || 'Failed to verify identity';
       setError(errorMsg);
       return false;

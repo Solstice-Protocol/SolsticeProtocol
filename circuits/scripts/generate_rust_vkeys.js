@@ -122,7 +122,7 @@ pub struct VerificationKey {
 for (const circuit of circuits) {
     const vkeyPath = path.join(buildDir, `${circuit}_verification_key.json`);
     if (!fs.existsSync(vkeyPath)) {
-        console.error(`❌ Verification key not found: ${vkeyPath}`);
+        console.error(`Verification key not found: ${vkeyPath}`);
         console.error(`   Run 'npm run build' in circuits directory first.`);
         continue;
     }
@@ -132,5 +132,5 @@ for (const circuit of circuits) {
 
 // Write to file
 fs.writeFileSync(outputFile, output);
-console.log(`\n✅ Verification keys exported to: ${outputFile}`);
-console.log(`📊 Generated ${circuits.length} verification keys`);
+console.log(`\nVerification keys exported to: ${outputFile}`);
+console.log(`Generated ${circuits.length} verification keys`);

@@ -42,7 +42,7 @@ export async function generateZKProof(attributeType, privateInputs, publicInputs
             readFileSync(wasmPath);
             readFileSync(zkeyPath);
         } catch (err) {
-            console.warn('⚠️  Circuits not compiled, using development mode');
+            console.warn(' Circuits not compiled, using development mode');
             console.warn('   Run: cd circuits && npm run build');
             
             // Development fallback
@@ -72,7 +72,7 @@ export async function generateZKProof(attributeType, privateInputs, publicInputs
             zkeyPath
         );
 
-        console.log('✅ Proof generated successfully');
+        console.log('Proof generated successfully');
         console.log('   Public signals:', publicSignals);
 
         return { proof, publicSignals };
@@ -117,15 +117,15 @@ export async function verifyZKProof(proof, publicSignals, attributeType) {
             const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
             
             if (isValid) {
-                console.log('✅ Proof verification successful');
+                console.log('Proof verification successful');
             } else {
-                console.log('❌ Proof verification failed');
+                console.log('Proof verification failed');
             }
             
             return isValid;
             
         } catch (err) {
-            console.warn('⚠️  Verification key not found, using development mode');
+            console.warn(' Verification key not found, using development mode');
             console.warn('   Run: cd circuits && npm run build');
             return true; // Development fallback
         }
@@ -191,7 +191,7 @@ async function generateAgeProof(age, minAge, identityCommitment) {
       zkeyPath
     );
 
-    console.log('✅ Age proof generated successfully');
+    console.log('Age proof generated successfully');
     console.log('Public signals:', publicSignals);
 
     // Convert proof to format expected by Solana program
@@ -241,7 +241,7 @@ async function generateNationalityProof(nationality, identityCommitment) {
       zkeyPath
     );
 
-    console.log('✅ Nationality proof generated successfully');
+    console.log('Nationality proof generated successfully');
 
     const solidityProof = await exportSolidityCallData(proof, publicSignals);
 
@@ -286,7 +286,7 @@ async function generateUniquenessProof(aadhaarHash, identityCommitment) {
       zkeyPath
     );
 
-    console.log('✅ Uniqueness proof generated successfully');
+    console.log('Uniqueness proof generated successfully');
 
     const solidityProof = await exportSolidityCallData(proof, publicSignals);
 
@@ -351,7 +351,7 @@ async function verifyProofLocally(proof, publicSignals, circuitType) {
     
     const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
     
-    console.log(`Local verification for ${circuitType}: ${isValid ? '✅ VALID' : '❌ INVALID'}`);
+    console.log(`Local verification for ${circuitType}: ${isValid ? 'VALID' : 'INVALID'}`);
     
     return isValid;
   } catch (error) {

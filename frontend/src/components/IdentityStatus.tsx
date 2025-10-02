@@ -150,7 +150,7 @@ function VerificationBadge({ label, verified }: { label: string; verified: boole
     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
       verified ? 'bg-green-900/50 text-green-300 border border-green-700' : 'bg-gray-900/50 text-gray-400 border border-gray-700'
     }`}>
-      {label}: {verified ? '✓' : '✗'}
+      {label}: {verified ? '' : ''}
     </span>
   );
 }

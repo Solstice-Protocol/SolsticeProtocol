@@ -24,7 +24,7 @@ export function parseAadhaarQR(qrData) {
             throw new Error(`Invalid Aadhaar QR format - expected at least 7 fields, got ${parts.length}`);
         }
 
-        console.log('✅ Successfully parsed Aadhaar QR with', parts.length, 'fields');
+        console.log('Successfully parsed Aadhaar QR with', parts.length, 'fields');
 
         return {
             version: parts[0],

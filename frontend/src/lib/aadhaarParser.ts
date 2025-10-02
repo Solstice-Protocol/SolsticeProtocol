@@ -52,23 +52,23 @@ export function parseAadhaarQR(qrData: string): AadhaarData {
     );
   }
 
-  console.log('📱 Parsing mAadhaar QR code...');
-  console.log('📊 QR data length:', qrData.length, 'characters');
+  console.log('Parsing mAadhaar QR code...');
+  console.log('QR data length:', qrData.length, 'characters');
 
   try {
     // Step 1: Convert BigInt string to byte array
-    console.log('🔄 Converting BigInt to bytes...');
+    console.log('Converting BigInt to bytes...');
     const qrDataBytes = convertBigIntToByteArray(BigInt(qrData));
-    console.log('✅ Converted to', qrDataBytes.length, 'bytes');
+    console.log('Converted to', qrDataBytes.length, 'bytes');
 
     // Step 2: Decompress the byte array
-    console.log('🔄 Decompressing data...');
+    console.log('Decompressing data...');
     const decodedData = decompressByteArray(qrDataBytes);
-    console.log('✅ Decompressed to', decodedData.length, 'bytes');
+    console.log('Decompressed to', decodedData.length, 'bytes');
 
     // Step 3: Extract signed data (everything except last 256 bytes which is signature)
     const signedData = decodedData.slice(0, decodedData.length - 256);
-    console.log('📋 Signed data:', signedData.length, 'bytes');
+    console.log('Signed data:', signedData.length, 'bytes');
 
     // Step 4: Find delimiter indices (byte value 255)
     const delimiterIndices: number[] = [];
@@ -81,7 +81,7 @@ export function parseAadhaarQR(qrData: string): AadhaarData {
       }
     }
 
-    console.log('📋 Found', delimiterIndices.length, 'delimiters');
+    console.log('Found', delimiterIndices.length, 'delimiters');
 
     if (delimiterIndices.length < 7) {
       throw new Error(
@@ -148,7 +148,7 @@ export function parseAadhaarQR(qrData: string): AadhaarData {
       state: state || undefined,
     };
 
-    console.log('✅ Successfully parsed mAadhaar QR code!');
+    console.log('Successfully parsed mAadhaar QR code!');
     console.log('   Name:', parsedData.name);
     console.log('   DOB:', parsedData.dateOfBirth);
     console.log('   Gender:', parsedData.gender);
@@ -160,7 +160,7 @@ export function parseAadhaarQR(qrData: string): AadhaarData {
     return parsedData;
 
   } catch (error: any) {
-    console.error('❌ Error parsing Aadhaar QR code:', error);
+    console.error('Error parsing Aadhaar QR code:', error);
     throw new Error(
       `Failed to parse mAadhaar QR code: ${error.message}. ` +
       'Please ensure you are using the latest mAadhaar app and uploading ' +

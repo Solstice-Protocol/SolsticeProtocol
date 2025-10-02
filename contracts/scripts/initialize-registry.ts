@@ -18,7 +18,7 @@ const PROGRAM_ID = 'ELqNcvWpY4L5qAe7P4PuEKMo86zrouKctZF3KuSysuYY';
 const KEYPAIR_PATH = process.env.HOME + '/.config/solana/id.json';
 
 async function main() {
-  console.log('🚀 Initializing Solstice Protocol Registry on Devnet\n');
+  console.log('Initializing Solstice Protocol Registry on Devnet\n');
 
   // Load wallet
   const keypairData = JSON.parse(fs.readFileSync(KEYPAIR_PATH, 'utf-8'));
@@ -38,7 +38,7 @@ async function main() {
   const programId = new PublicKey(PROGRAM_ID);
   const program = new Program(IDL as any, provider);
 
-  console.log('\n🔍 Program methods:', Object.keys(program.methods));
+  console.log('\nProgram methods:', Object.keys(program.methods));
 
   // Derive registry PDA
   const [registryPda, bump] = PublicKey.findProgramAddressSync(
@@ -53,7 +53,7 @@ async function main() {
   try {
     const accountInfo = await connection.getAccountInfo(registryPda);
     if (accountInfo) {
-      console.log('\n✅ Registry already initialized!');
+      console.log('\nRegistry already initialized!');
       console.log('   Owner:', accountInfo.owner.toString());
       console.log('   Data length:', accountInfo.data.length, 'bytes');
       return;
@@ -62,7 +62,7 @@ async function main() {
     // Account doesn't exist, continue with initialization
   }
 
-  console.log('\n🔄 Initializing registry...');
+  console.log('\nInitializing registry...');
 
   try {
     // @ts-ignore - Anchor generates camelCase methods
@@ -75,14 +75,14 @@ async function main() {
       })
       .rpc();
 
-    console.log('\n✅ Registry initialized successfully!');
+    console.log('\nRegistry initialized successfully!');
     console.log('   Transaction:', tx);
     console.log('   View on Solscan:', `https://solscan.io/tx/${tx}?cluster=devnet`);
   } catch (error: any) {
-    console.error('\n❌ Error initializing registry:');
+    console.error('\nError initializing registry:');
     console.error(error);
     if (error.logs) {
-      console.error('\n📋 Program logs:');
+      console.error('\nProgram logs:');
       error.logs.forEach((log: string) => console.error('  ', log));
     }
     process.exit(1);

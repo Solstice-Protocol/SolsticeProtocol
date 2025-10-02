@@ -56,25 +56,25 @@ export function QRScanner() {
     try {
       setQrData(data);
       
-      console.log('🔍 Raw QR data received');
-      console.log('📊 Length:', data.length, 'characters');
-      console.log('📄 First 100 chars:', data.substring(0, 100));
+      console.log('Raw QR data received');
+      console.log('Length:', data.length, 'characters');
+      console.log('First 100 chars:', data.substring(0, 100));
       
       // Check if it's XML format (physical Aadhaar card QR)
       if (isPhysicalCardQR(data)) {
-        console.log('❌ Detected XML format Aadhaar Secure QR Code (from physical card/eAadhaar)');
-        alert('⚠️ This QR code is from a physical Aadhaar card or eAadhaar PDF.\n\nPlease use the QR code from the mAadhaar mobile app instead:\n\n1. Open mAadhaar app on your phone\n2. Go to My Aadhaar → Share\n3. Select "Share QR Code"\n4. Take a screenshot and upload here');
+        console.log('Detected XML format Aadhaar Secure QR Code (from physical card/eAadhaar)');
+        alert('This QR code is from a physical Aadhaar card or eAadhaar PDF.\n\nPlease use the QR code from the mAadhaar mobile app instead:\n\n1. Open mAadhaar app on your phone\n2. Go to My Aadhaar → Share\n3. Select "Share QR Code"\n4. Take a screenshot and upload here');
         return;
       }
       
       // Check if it's a valid mAadhaar QR (numeric string)
       if (!isMadhaarQR(data)) {
-        console.error('❌ QR code is not in mAadhaar format');
-        alert('⚠️ Invalid QR code format.\n\nmAadhaar QR codes are numeric strings (several hundred characters long).\n\nPlease ensure:\n1. You are using the mAadhaar app (not physical card)\n2. The QR code image is clear and complete\n3. You scanned the entire QR code');
+        console.error('QR code is not in mAadhaar format');
+        alert('Invalid QR code format.\n\nmAadhaar QR codes are numeric strings (several hundred characters long).\n\nPlease ensure:\n1. You are using the mAadhaar app (not physical card)\n2. The QR code image is clear and complete\n3. You scanned the entire QR code');
         return;
       }
       
-      console.log('✅ Valid mAadhaar QR format detected');
+      console.log('Valid mAadhaar QR format detected');
       
       try {
         // Parse QR using @anon-aadhaar/core (same as Self Protocol)
@@ -92,12 +92,12 @@ export function QRScanner() {
           aadhaarNumber: `XXXX-XXXX-${aadhaarData.aadhaarLast4Digits}`,
         };
         
-        console.log('✅ Identity data ready for registration');
+        console.log('Identity data ready for registration');
         setParsedData(identityData);
         
       } catch (parseError: any) {
-        console.error('❌ Failed to parse mAadhaar QR:', parseError);
-        alert(`❌ Failed to parse mAadhaar QR code.\n\n${parseError.message}\n\nPlease ensure:\n1. You are using the latest mAadhaar app\n2. The QR code screenshot is clear and complete\n3. You are uploading the "Share QR Code" from the app`);
+        console.error('Failed to parse mAadhaar QR:', parseError);
+        alert(`Failed to parse mAadhaar QR code.\n\n${parseError.message}\n\nPlease ensure:\n1. You are using the latest mAadhaar app\n2. The QR code screenshot is clear and complete\n3. You are uploading the "Share QR Code" from the app`);
         return;
       }
       
@@ -109,7 +109,7 @@ export function QRScanner() {
         setStep('parsed');
       }
     } catch (error) {
-      console.error('❌ Error parsing QR code:', error);
+      console.error('Error parsing QR code:', error);
       alert('Failed to parse QR code. Please ensure it\'s a valid Aadhaar QR code from mAadhaar app.');
     }
   };
@@ -125,12 +125,12 @@ export function QRScanner() {
       
       if (success) {
         setStep('registered');
-        console.log('✅ Identity registered on-chain!');
+        console.log('Identity registered on-chain!');
         
         // Auto-generate all ZK proofs after successful registration
         if (parsedData) {
           setGeneratingProofs(true);
-          console.log('🚀 Auto-generating ZK proofs in browser...');
+          console.log('Auto-generating ZK proofs in browser...');
           
           try {
             // Parse date of birth (DD/MM/YYYY → YYYYMMDD string format)
@@ -150,7 +150,7 @@ export function QRScanner() {
               nonce
             };
             
-            console.log('📝 Identity data prepared:', {
+            console.log('Identity data prepared:', {
               ...identityForProofs,
               aadhaarNumber: '****-****-' + identityForProofs.aadhaarNumber.slice(-4) // Redacted for console
             });
@@ -169,20 +169,20 @@ export function QRScanner() {
               uniqueness: uniquenessProof || undefined
             });
             
-            console.log('✅ ZK Proofs generated and stored locally!');
-            if (ageProof) console.log('  ✓ Age proof (>18 years)');
-            if (nationalityProof) console.log('  ✓ Nationality proof (Indian)');
-            if (uniquenessProof) console.log('  ✓ Uniqueness proof');
+            console.log('ZK Proofs generated and stored locally!');
+            if (ageProof) console.log('  Age proof (>18 years)');
+            if (nationalityProof) console.log('  Nationality proof (Indian)');
+            if (uniquenessProof) console.log('  Uniqueness proof');
             
             if (errors.length > 0) {
-              console.warn('⚠️ Some proofs failed:', errors);
+              console.warn('Some proofs failed:', errors);
             }
             
             // Clear sensitive data after proof generation
             setParsedData(null);
             
           } catch (proofError) {
-            console.error('❌ Failed to generate proofs:', proofError);
+            console.error('Failed to generate proofs:', proofError);
             console.log('You can regenerate proofs later in the Verification Flow tab');
           } finally {
             setGeneratingProofs(false);
@@ -315,7 +315,7 @@ export function QRScanner() {
           {!generatingProofs && (
             <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4 mb-6">
               <p className="text-blue-200 text-sm">
-                ✅ ZK proofs generated and stored locally<br/>
+                ZK proofs generated and stored locally<br/>
                 You can now verify attributes on any dApp instantly!
               </p>
             </div>
@@ -330,7 +330,7 @@ export function QRScanner() {
           </button>
           
           <p className="text-gray-400 text-sm mt-4 text-center">
-            ℹ️ Your identity is now registered. One person, one identity.
+            Your identity is now registered. One person, one identity.
           </p>
         </div>
       )}

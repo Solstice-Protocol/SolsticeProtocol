@@ -71,15 +71,15 @@ export function VerificationFlow({ identity }: VerificationFlowProps) {
       const { proof, publicSignals } = proofs[selectedAttribute];
       
       // Verify proof locally first (sanity check)
-      console.log('🔐 Verifying proof locally...');
+      console.log(' Verifying proof locally...');
       const isValidLocal = await verifyProofLocally(proof, publicSignals, selectedAttribute);
       
       if (!isValidLocal) {
-        alert('⚠️ Proof verification failed locally. The proof may be corrupted.');
+        alert('Proof verification failed locally. The proof may be corrupted.');
         return;
       }
       
-      console.log('✅ Proof verified locally!');
+      console.log('Proof verified locally!');
       setCurrentProof({ proof, publicSignals, attributeType: selectedAttribute });
       setProofGenerated(true);
     } catch (error) {
@@ -127,18 +127,18 @@ export function VerificationFlow({ identity }: VerificationFlowProps) {
               <h4 className="text-blue-200 font-semibold mb-2">📦 Stored Proofs</h4>
               <div className="grid grid-cols-3 gap-2 text-sm">
                 <div className={proofsAvailable.age ? 'text-green-400' : 'text-gray-500'}>
-                  {proofsAvailable.age ? '✓' : '✗'} Age
+                  {proofsAvailable.age ? '' : ''} Age
                 </div>
                 <div className={proofsAvailable.nationality ? 'text-green-400' : 'text-gray-500'}>
-                  {proofsAvailable.nationality ? '✓' : '✗'} Nationality
+                  {proofsAvailable.nationality ? '' : ''} Nationality
                 </div>
                 <div className={proofsAvailable.uniqueness ? 'text-green-400' : 'text-gray-500'}>
-                  {proofsAvailable.uniqueness ? '✓' : '✗'} Uniqueness
+                  {proofsAvailable.uniqueness ? '' : ''} Uniqueness
                 </div>
               </div>
               {(!proofsAvailable.age || !proofsAvailable.nationality || !proofsAvailable.uniqueness) && (
                 <p className="text-blue-300 text-xs mt-2">
-                  ⚠️ Some proofs missing. Please scan your QR code in the QR Scanner tab.
+                  Some proofs missing. Please scan your QR code in the QR Scanner tab.
                 </p>
               )}
             </div>
@@ -341,10 +341,10 @@ function AttributeButton({
       <h3 className="font-semibold text-white mb-2">{title}</h3>
       <p className="text-sm text-gray-400">{description}</p>
       {verified && (
-        <p className="text-xs text-green-400 mt-2 font-semibold">✓ Verified</p>
+        <p className="text-xs text-green-400 mt-2 font-semibold">Verified</p>
       )}
       {!verified && !proofAvailable && (
-        <p className="text-xs text-yellow-500 mt-2">⚠️ Proof not available</p>
+        <p className="text-xs text-yellow-500 mt-2">Proof not available</p>
       )}
     </button>
   );

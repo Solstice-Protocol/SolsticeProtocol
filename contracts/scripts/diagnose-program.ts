@@ -15,7 +15,7 @@ const IDL = JSON.parse(
 );
 
 async function main() {
-  console.log('🔍 Debugging InstructionFallbackNotFound error\n');
+  console.log('Debugging InstructionFallbackNotFound error\n');
 
   const connection = new Connection(DEVNET_RPC, 'confirmed');
   const programId = new PublicKey(PROGRAM_ID);
@@ -25,11 +25,11 @@ async function main() {
   const programAccount = await connection.getAccountInfo(programId);
   
   if (!programAccount) {
-    console.error('❌ Program not found on devnet!');
+    console.error('Program not found on devnet!');
     process.exit(1);
   }
 
-  console.log('✅ Program exists');
+  console.log('Program exists');
   console.log('   Owner:', programAccount.owner.toString());
   console.log('   Executable:', programAccount.executable);
   console.log('   Data length:', programAccount.data.length, 'bytes');
@@ -44,7 +44,7 @@ async function main() {
   const programData = await connection.getAccountInfo(programDataAddress);
   
   if (programData) {
-    console.log('✅ Program Data exists');
+    console.log('Program Data exists');
     console.log('   Data length:', programData.data.length, 'bytes');
   }
 
@@ -58,17 +58,17 @@ async function main() {
   const registryAccount = await connection.getAccountInfo(registryPda);
   
   if (!registryAccount) {
-    console.error('❌ Registry not initialized!');
+    console.error('Registry not initialized!');
     process.exit(1);
   }
 
-  console.log('✅ Registry exists');
+  console.log('Registry exists');
   console.log('   Owner:', registryAccount.owner.toString());
   console.log('   Data length:', registryAccount.data.length, 'bytes');
   console.log('   Data (hex):', registryAccount.data.toString('hex'));
 
   // Analyze IDL
-  console.log('\n📋 IDL Analysis:');
+  console.log('\nIDL Analysis:');
   console.log('   Address:', IDL.address);
   console.log('   Name:', IDL.metadata.name);
   console.log('   Version:', IDL.metadata.version);
@@ -94,7 +94,7 @@ async function main() {
   for (const sig of signatures) {
     console.log(`\n   Signature: ${sig.signature.slice(0, 20)}...`);
     console.log(`   Slot: ${sig.slot}`);
-    console.log(`   Status: ${sig.err ? '❌ Error' : '✅ Success'}`);
+    console.log(`   Status: ${sig.err ? 'Error' : 'Success'}`);
     
     if (sig.err) {
       const tx = await connection.getTransaction(sig.signature, {
@@ -110,12 +110,12 @@ async function main() {
     }
   }
 
-  console.log('\n✅ Diagnostic complete');
+  console.log('\nDiagnostic complete');
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('❌ Error:', error);
+    console.error('Error:', error);
     process.exit(1);
   });

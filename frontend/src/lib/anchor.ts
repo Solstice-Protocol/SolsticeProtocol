@@ -36,11 +36,11 @@ export function getSolsticeProgram(
   const program = new Program(IDL_JSON as any, provider);
   
   // Debug: log program details
-  console.log('🔍 Program ID from IDL:', programId.toString());
-  console.log('🔍 Program ID from instance:', program.programId.toString());
-  console.log('🔍 Program methods available:', program.methods ? 'YES' : 'NO');
+  console.log('Program ID from IDL:', programId.toString());
+  console.log('Program ID from instance:', program.programId.toString());
+  console.log('Program methods available:', program.methods ? 'YES' : 'NO');
   if (program.methods) {
-    console.log('🔍 Available method names:', Object.keys(program.methods));
+    console.log('Available method names:', Object.keys(program.methods));
   }
   
   return program as unknown as Program<Contracts>;
@@ -108,9 +108,9 @@ export async function registerIdentity(
   const commitmentBytes = hexToBytes32(identityCommitment);
   const merkleRootBytes = hexToBytes32(merkleRoot);
   
-  console.log('🔍 Debug:', { commitmentBytes, merkleRootBytes });
-  console.log('🔍 Registry PDA:', registryPda.toString());
-  console.log('🔍 Identity PDA:', identityPda.toString());
+  console.log('Debug:', { commitmentBytes, merkleRootBytes });
+  console.log('Registry PDA:', registryPda.toString());
+  console.log('Identity PDA:', identityPda.toString());
   
   // Check if program.methods exists
   if (!program.methods) {
@@ -121,7 +121,7 @@ export async function registerIdentity(
   const accountInfo = await provider.connection.getAccountInfo(identityPda);
   const accountExists = accountInfo !== null;
   
-  console.log('🔍 Identity account exists:', accountExists);
+  console.log('Identity account exists:', accountExists);
   
   if (accountExists) {
     // Read raw account data to check if update is needed
@@ -145,19 +145,19 @@ export async function registerIdentity(
     const newCommitment = identityCommitment.replace('0x', '').toLowerCase();
     const newMerkleRoot = merkleRoot.replace('0x', '').toLowerCase();
     
-    console.log('🔍 Existing commitment:', existingCommitment);
-    console.log('🔍 New commitment:', newCommitment);
+    console.log('Existing commitment:', existingCommitment);
+    console.log('New commitment:', newCommitment);
     
     if (existingCommitment === newCommitment && existingMerkleRoot === newMerkleRoot) {
-      console.log('✅ Identity data unchanged, skipping transaction');
+      console.log('Identity data unchanged, skipping transaction');
       // Fetch the most recent transaction for this account
       const signatures = await provider.connection.getSignaturesForAddress(identityPda, { limit: 1 });
       const lastTx = signatures[0]?.signature || 'IDENTITY_UNCHANGED';
-      console.log('📝 Using existing transaction:', lastTx);
+      console.log('Using existing transaction:', lastTx);
       return lastTx;
     }
     
-    console.log('🔄 Updating existing identity with new data...');
+    console.log('Updating existing identity with new data...');
     // @ts-ignore - TypeScript doesn't know about camelCase conversion
     const tx = await program.methods
       .updateIdentity(commitmentBytes, merkleRootBytes)
@@ -170,14 +170,14 @@ export async function registerIdentity(
         commitment: 'confirmed',
       });
     
-    console.log('✅ Identity updated:', tx);
+    console.log('Identity updated:', tx);
     return tx;
   }
   
-  console.log('🔍 Creating new identity...');
+  console.log('Creating new identity...');
   
   // Log the program instance details
-  console.log('🔍 Program instance:');
+  console.log('Program instance:');
   console.log('   programId:', program.programId.toString());
   console.log('   provider:', program.provider.connection.rpcEndpoint);
   
@@ -196,7 +196,7 @@ export async function registerIdentity(
       commitment: 'confirmed',
     });
   
-  console.log('✅ Identity registered:', tx);
+  console.log('Identity registered:', tx);
   return tx;
 }
 
@@ -242,7 +242,7 @@ export async function verifyIdentity(
     })
     .rpc();
   
-  console.log('✅ Identity verified:', tx);
+  console.log('Identity verified:', tx);
   return tx;
 }
 
@@ -291,7 +291,7 @@ function serializeProof(_proof: any): Uint8Array {
   // Total: 10 field elements * 32 bytes = 320 bytes (compressed to 256)
   
   // For now, return a placeholder - implement actual serialization based on groth16-solana
-  console.warn('⚠️  Proof serialization needs proper implementation');
+  console.warn(' Proof serialization needs proper implementation');
   return new Uint8Array(buffer);
 }
 
