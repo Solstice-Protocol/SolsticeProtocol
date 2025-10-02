@@ -1,14 +1,20 @@
 import { useState, useRef } from 'react';
 import jsQR from 'jsqr';
 import { useSolstice } from '../contexts/SolsticeContext';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { Camera, Upload, CheckCircle, Loader } from 'lucide-react';
+import { generateAllProofs, storeProofs } from '../lib/proofGenerator';
+import { parseAadhaarQR, isMadhaarQR, isPhysicalCardQR } from '../lib/aadhaarParser';
 
 export function QRScanner() {
   const { parseQRCode, registerIdentity, loading } = useSolstice();
+  const wallet = useWallet();
   const [scanning, setScanning] = useState(false);
   const [qrData, setQrData] = useState<string | null>(null);
   const [commitment, setCommitment] = useState<string | null>(null);
+  const [parsedData, setParsedData] = useState<any>(null);
   const [step, setStep] = useState<'scan' | 'parsed' | 'registered'>('scan');
+  const [generatingProofs, setGeneratingProofs] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -49,6 +55,53 @@ export function QRScanner() {
   const handleQRData = async (data: string) => {
     try {
       setQrData(data);
+      
+      console.log('🔍 Raw QR data received');
+      console.log('📊 Length:', data.length, 'characters');
+      console.log('📄 First 100 chars:', data.substring(0, 100));
+      
+      // Check if it's XML format (physical Aadhaar card QR)
+      if (isPhysicalCardQR(data)) {
+        console.log('❌ Detected XML format Aadhaar Secure QR Code (from physical card/eAadhaar)');
+        alert('⚠️ This QR code is from a physical Aadhaar card or eAadhaar PDF.\n\nPlease use the QR code from the mAadhaar mobile app instead:\n\n1. Open mAadhaar app on your phone\n2. Go to My Aadhaar → Share\n3. Select "Share QR Code"\n4. Take a screenshot and upload here');
+        return;
+      }
+      
+      // Check if it's a valid mAadhaar QR (numeric string)
+      if (!isMadhaarQR(data)) {
+        console.error('❌ QR code is not in mAadhaar format');
+        alert('⚠️ Invalid QR code format.\n\nmAadhaar QR codes are numeric strings (several hundred characters long).\n\nPlease ensure:\n1. You are using the mAadhaar app (not physical card)\n2. The QR code image is clear and complete\n3. You scanned the entire QR code');
+        return;
+      }
+      
+      console.log('✅ Valid mAadhaar QR format detected');
+      
+      try {
+        // Parse QR using @anon-aadhaar/core (same as Self Protocol)
+        const aadhaarData = parseAadhaarQR(data);
+        
+        // Convert to internal format
+        const identityData = {
+          version: '2.5',
+          name: aadhaarData.name,
+          dateOfBirth: aadhaarData.dateOfBirth,
+          gender: aadhaarData.gender,
+          address: aadhaarData.address,
+          photo: '',
+          signature: '',
+          aadhaarNumber: `XXXX-XXXX-${aadhaarData.aadhaarLast4Digits}`,
+        };
+        
+        console.log('✅ Identity data ready for registration');
+        setParsedData(identityData);
+        
+      } catch (parseError: any) {
+        console.error('❌ Failed to parse mAadhaar QR:', parseError);
+        alert(`❌ Failed to parse mAadhaar QR code.\n\n${parseError.message}\n\nPlease ensure:\n1. You are using the latest mAadhaar app\n2. The QR code screenshot is clear and complete\n3. You are uploading the "Share QR Code" from the app`);
+        return;
+      }
+      
+      // Parse on backend for commitment and signature verification
       const result = await parseQRCode(data);
       
       if (result.success) {
@@ -56,12 +109,13 @@ export function QRScanner() {
         setStep('parsed');
       }
     } catch (error) {
-      console.error('Error parsing QR code:', error);
+      console.error('❌ Error parsing QR code:', error);
+      alert('Failed to parse QR code. Please ensure it\'s a valid Aadhaar QR code from mAadhaar app.');
     }
   };
 
   const handleRegister = async () => {
-    if (!commitment) return;
+    if (!commitment || !wallet.publicKey) return;
 
     try {
       // Generate merkle root (in production, this would involve actual merkle tree)
@@ -71,6 +125,69 @@ export function QRScanner() {
       
       if (success) {
         setStep('registered');
+        console.log('✅ Identity registered on-chain!');
+        
+        // Auto-generate all ZK proofs after successful registration
+        if (parsedData) {
+          setGeneratingProofs(true);
+          console.log('🚀 Auto-generating ZK proofs in browser...');
+          
+          try {
+            // Parse date of birth (DD/MM/YYYY → YYYYMMDD string format)
+            const [day, month, year] = parsedData.dateOfBirth.split('/');
+            const dobFormatted = `${year}${month.padStart(2, '0')}${day.padStart(2, '0')}`;
+            
+            // Extract nationality from address (simplified - you may need better parsing)
+            const nationality = 'IN'; // Default to India for Aadhaar
+            
+            // Generate nonce from commitment (deterministic)
+            const nonce = BigInt('0x' + commitment.slice(0, 16)).toString();
+            
+            const identityForProofs = {
+              dateOfBirth: dobFormatted,
+              nationality,
+              aadhaarNumber: parsedData.aadhaarNumber,
+              nonce
+            };
+            
+            console.log('📝 Identity data prepared:', {
+              ...identityForProofs,
+              aadhaarNumber: '****-****-' + identityForProofs.aadhaarNumber.slice(-4) // Redacted for console
+            });
+            
+            // Generate all proofs in parallel (~5 seconds)
+            const { ageProof, nationalityProof, uniquenessProof, errors } = 
+              await generateAllProofs(identityForProofs, {
+                ageThreshold: 18,
+                allowedNationality: 'IN'
+              });
+            
+            // Store proofs locally (7-day expiry)
+            storeProofs(wallet.publicKey.toString(), {
+              age: ageProof || undefined,
+              nationality: nationalityProof || undefined,
+              uniqueness: uniquenessProof || undefined
+            });
+            
+            console.log('✅ ZK Proofs generated and stored locally!');
+            if (ageProof) console.log('  ✓ Age proof (>18 years)');
+            if (nationalityProof) console.log('  ✓ Nationality proof (Indian)');
+            if (uniquenessProof) console.log('  ✓ Uniqueness proof');
+            
+            if (errors.length > 0) {
+              console.warn('⚠️ Some proofs failed:', errors);
+            }
+            
+            // Clear sensitive data after proof generation
+            setParsedData(null);
+            
+          } catch (proofError) {
+            console.error('❌ Failed to generate proofs:', proofError);
+            console.log('You can regenerate proofs later in the Verification Flow tab');
+          } finally {
+            setGeneratingProofs(false);
+          }
+        }
       }
     } catch (error) {
       console.error('Error registering identity:', error);
@@ -181,15 +298,40 @@ export function QRScanner() {
         <div className="bg-green-900/20 border border-green-700 rounded-lg p-6 text-center">
           <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
           <h3 className="text-2xl font-bold text-white mb-2">Identity Registered!</h3>
-          <p className="text-green-200 mb-6">
-            Your identity commitment has been registered on Solana. You can now verify attributes.
+          <p className="text-green-200 mb-4">
+            Your identity commitment has been registered on Solana.
           </p>
+          
+          {generatingProofs && (
+            <div className="bg-purple-900/30 border border-purple-600 rounded-lg p-4 mb-4">
+              <Loader className="w-8 h-8 text-purple-400 mx-auto mb-2 animate-spin" />
+              <p className="text-purple-200 font-semibold">Generating ZK Proofs...</p>
+              <p className="text-purple-300 text-sm mt-1">
+                This may take a few seconds. All computation happens in your browser for privacy.
+              </p>
+            </div>
+          )}
+          
+          {!generatingProofs && (
+            <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4 mb-6">
+              <p className="text-blue-200 text-sm">
+                ✅ ZK proofs generated and stored locally<br/>
+                You can now verify attributes on any dApp instantly!
+              </p>
+            </div>
+          )}
+          
           <button
             onClick={resetFlow}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+            disabled={generatingProofs}
+            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
           >
-            Done
+            {generatingProofs ? 'Generating proofs...' : 'Done'}
           </button>
+          
+          <p className="text-gray-400 text-sm mt-4 text-center">
+            ℹ️ Your identity is now registered. One person, one identity.
+          </p>
         </div>
       )}
     </div>

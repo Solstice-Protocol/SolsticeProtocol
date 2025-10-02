@@ -5,8 +5,8 @@
 import { Program, AnchorProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import type { AnchorWallet } from '@solana/wallet-adapter-react';
-import { IDL, type Contracts } from './idl';
-import { config } from '../config';
+import type { Contracts } from './idl';
+import IDL_JSON from './idl.json';
 
 /**
  * Create an Anchor provider from wallet and connection
@@ -28,8 +28,22 @@ export function createProvider(
 export function getSolsticeProgram(
   provider: AnchorProvider
 ): Program<Contracts> {
-  const programId = new PublicKey(config.programId);
-  return new Program<Contracts>(IDL, programId, provider);
+  // Get program ID from IDL
+  const programId = new PublicKey(IDL_JSON.address);
+  
+  // Create program - import JSON directly to avoid TypeScript type issues
+  // Anchor needs the raw IDL object to generate methods dynamically
+  const program = new Program(IDL_JSON as any, provider);
+  
+  // Debug: log program details
+  console.log('🔍 Program ID from IDL:', programId.toString());
+  console.log('🔍 Program ID from instance:', program.programId.toString());
+  console.log('🔍 Program methods available:', program.methods ? 'YES' : 'NO');
+  if (program.methods) {
+    console.log('🔍 Available method names:', Object.keys(program.methods));
+  }
+  
+  return program as unknown as Program<Contracts>;
 }
 
 /**
@@ -75,7 +89,7 @@ export function hexToBytes32(hex: string): number[] {
 }
 
 /**
- * Register a new identity on-chain
+ * Register a new identity on-chain (or update if exists)
  */
 export async function registerIdentity(
   program: Program<Contracts>,
@@ -84,6 +98,7 @@ export async function registerIdentity(
   merkleRoot: string
 ): Promise<string> {
   const programId = program.programId;
+  const provider = program.provider as AnchorProvider;
   
   // Get PDAs
   const [registryPda] = getRegistryPDA(programId);
@@ -93,7 +108,81 @@ export async function registerIdentity(
   const commitmentBytes = hexToBytes32(identityCommitment);
   const merkleRootBytes = hexToBytes32(merkleRoot);
   
-  // Send transaction
+  console.log('🔍 Debug:', { commitmentBytes, merkleRootBytes });
+  console.log('🔍 Registry PDA:', registryPda.toString());
+  console.log('🔍 Identity PDA:', identityPda.toString());
+  
+  // Check if program.methods exists
+  if (!program.methods) {
+    throw new Error('Program methods not initialized. Check IDL and program connection.');
+  }
+  
+  // Check if identity account already exists
+  const accountInfo = await provider.connection.getAccountInfo(identityPda);
+  const accountExists = accountInfo !== null;
+  
+  console.log('🔍 Identity account exists:', accountExists);
+  
+  if (accountExists) {
+    // Read raw account data to check if update is needed
+    const accountData = accountInfo!.data;
+    
+    // Identity account structure (from Rust):
+    // - 8 bytes discriminator
+    // - 32 bytes owner (pubkey)
+    // - 32 bytes identity_commitment
+    // - 32 bytes merkle_root
+    // - 1 byte is_verified
+    // - 8 bytes verification_timestamp
+    // - 4 bytes attributes_verified
+    // - 1 byte bump
+    
+    // Extract commitment (offset 40, length 32)
+    const existingCommitment = accountData.slice(40, 72).toString('hex');
+    // Extract merkle root (offset 72, length 32)
+    const existingMerkleRoot = accountData.slice(72, 104).toString('hex');
+    
+    const newCommitment = identityCommitment.replace('0x', '').toLowerCase();
+    const newMerkleRoot = merkleRoot.replace('0x', '').toLowerCase();
+    
+    console.log('🔍 Existing commitment:', existingCommitment);
+    console.log('🔍 New commitment:', newCommitment);
+    
+    if (existingCommitment === newCommitment && existingMerkleRoot === newMerkleRoot) {
+      console.log('✅ Identity data unchanged, skipping transaction');
+      // Fetch the most recent transaction for this account
+      const signatures = await provider.connection.getSignaturesForAddress(identityPda, { limit: 1 });
+      const lastTx = signatures[0]?.signature || 'IDENTITY_UNCHANGED';
+      console.log('📝 Using existing transaction:', lastTx);
+      return lastTx;
+    }
+    
+    console.log('🔄 Updating existing identity with new data...');
+    // @ts-ignore - TypeScript doesn't know about camelCase conversion
+    const tx = await program.methods
+      .updateIdentity(commitmentBytes, merkleRootBytes)
+      .accounts({
+        identity: identityPda,
+        user: userPublicKey,
+      })
+      .rpc({
+        skipPreflight: false,
+        commitment: 'confirmed',
+      });
+    
+    console.log('✅ Identity updated:', tx);
+    return tx;
+  }
+  
+  console.log('🔍 Creating new identity...');
+  
+  // Log the program instance details
+  console.log('🔍 Program instance:');
+  console.log('   programId:', program.programId.toString());
+  console.log('   provider:', program.provider.connection.rpcEndpoint);
+  
+  // Send transaction with fresh blockhash
+  // @ts-ignore - Anchor generates camelCase methods at runtime despite type definitions
   const tx = await program.methods
     .registerIdentity(commitmentBytes, merkleRootBytes)
     .accounts({
@@ -102,7 +191,10 @@ export async function registerIdentity(
       user: userPublicKey,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+    .rpc({
+      skipPreflight: false,
+      commitment: 'confirmed',
+    });
   
   console.log('✅ Identity registered:', tx);
   return tx;
@@ -136,7 +228,8 @@ export async function verifyIdentity(
   const proofBytes = serializeProof(proof);
   const publicInputBytes = serializePublicInputs(publicInputs);
   
-  // Send transaction
+  // Send transaction - Anchor converts snake_case IDL names to camelCase methods
+  // @ts-ignore - Anchor generates camelCase methods at runtime despite type definitions
   const tx = await program.methods
     .verifyIdentity(
       Array.from(proofBytes),
@@ -164,10 +257,22 @@ export async function fetchIdentityAccount(
   const [identityPda] = getIdentityPDA(userPublicKey, programId);
   
   try {
-    const account = await program.account.identity.fetch(identityPda);
-    return account;
+    // Fetch account info directly using the connection
+    const accountInfo = await program.provider.connection.getAccountInfo(identityPda);
+    
+    if (!accountInfo) {
+      console.log('Identity account not found');
+      return null;
+    }
+    
+    // Account exists, return basic info
+    return {
+      exists: true,
+      address: identityPda.toString(),
+      data: accountInfo.data
+    };
   } catch (error) {
-    console.log('Identity account not found');
+    console.log('Error fetching identity account:', error);
     return null;
   }
 }
@@ -175,7 +280,7 @@ export async function fetchIdentityAccount(
 /**
  * Serialize Groth16 proof for Solana
  */
-function serializeProof(proof: any): Uint8Array {
+function serializeProof(_proof: any): Uint8Array {
   // Convert proof to bytes format expected by Solana program
   // This is a simplified version - adjust based on your groth16-solana implementation
   const buffer = Buffer.alloc(256); // Groth16 proofs are typically 256 bytes

@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolstice } from '../contexts/SolsticeContext';
-import { CheckCircle, Loader, Calendar, Globe, Users } from 'lucide-react';
+import { CheckCircle, Loader, Calendar, Globe, Users, AlertCircle } from 'lucide-react';
+import { getStoredProofs, verifyProofLocally } from '../lib/proofGenerator';
 
 interface Identity {
   walletAddress: string;
@@ -16,42 +18,72 @@ interface VerificationFlowProps {
 type AttributeType = 'age' | 'nationality' | 'uniqueness';
 
 export function VerificationFlow({ identity }: VerificationFlowProps) {
-  const { generateProof, verifyIdentity, loading } = useSolstice();
+  const wallet = useWallet();
+  const { verifyIdentity, loading } = useSolstice();
   const [selectedAttribute, setSelectedAttribute] = useState<AttributeType | null>(null);
   const [proofGenerated, setProofGenerated] = useState(false);
   const [currentProof, setCurrentProof] = useState<any>(null);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const [storedProofs, setStoredProofs] = useState<any>(null);
+  const [proofsAvailable, setProofsAvailable] = useState({ age: false, nationality: false, uniqueness: false });
 
   // Check which attributes are already verified
   const isAgeVerified = (identity.attributesVerified & 1) > 0;
   const isNationalityVerified = (identity.attributesVerified & 2) > 0;
   const isUniquenessVerified = (identity.attributesVerified & 4) > 0;
 
+  // Load stored proofs on mount
+  useEffect(() => {
+    if (wallet.publicKey) {
+      const proofs = getStoredProofs(wallet.publicKey.toString());
+      setStoredProofs(proofs);
+      
+      if (proofs) {
+        setProofsAvailable({
+          age: !!proofs.age,
+          nationality: !!proofs.nationality,
+          uniqueness: !!proofs.uniqueness
+        });
+        console.log('📦 Loaded stored proofs:', {
+          age: !!proofs.age,
+          nationality: !!proofs.nationality,
+          uniqueness: !!proofs.uniqueness
+        });
+      }
+    }
+  }, [wallet.publicKey]);
+
   const handleGenerateProof = async () => {
-    if (!selectedAttribute) return;
+    if (!selectedAttribute || !wallet.publicKey) return;
 
     try {
       setProofGenerated(false);
       setVerificationSuccess(false);
 
-      // Mock private and public inputs (in production, these would come from actual data)
-      const privateInputs = {
-        age: selectedAttribute === 'age' ? '25' : undefined,
-        nationality: selectedAttribute === 'nationality' ? 'IN' : undefined,
-        identity_hash: identity.walletAddress
-      };
-
-      const publicInputs = {
-        commitment: identity.walletAddress,
-        minAge: selectedAttribute === 'age' ? '18' : undefined
-      };
-
-      const result = await generateProof(selectedAttribute, privateInputs, publicInputs);
+      // Get stored proof from localStorage
+      const proofs = getStoredProofs(wallet.publicKey.toString());
       
-      setCurrentProof(result);
+      if (!proofs || !proofs[selectedAttribute]) {
+        alert('No proof found. Please scan your QR code again to generate proofs.');
+        return;
+      }
+
+      const { proof, publicSignals } = proofs[selectedAttribute];
+      
+      // Verify proof locally first (sanity check)
+      console.log('🔐 Verifying proof locally...');
+      const isValidLocal = await verifyProofLocally(proof, publicSignals, selectedAttribute);
+      
+      if (!isValidLocal) {
+        alert('⚠️ Proof verification failed locally. The proof may be corrupted.');
+        return;
+      }
+      
+      console.log('✅ Proof verified locally!');
+      setCurrentProof({ proof, publicSignals, attributeType: selectedAttribute });
       setProofGenerated(true);
     } catch (error) {
-      console.error('Error generating proof:', error);
+      console.error('Error loading proof:', error);
     }
   };
 
@@ -88,32 +120,60 @@ export function VerificationFlow({ identity }: VerificationFlowProps) {
       </div>
 
       {!selectedAttribute ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <AttributeButton
-            icon={<Calendar className="w-8 h-8" />}
-            title="Age Verification"
-            description="Prove you're above a certain age"
-            verified={isAgeVerified}
-            onClick={() => setSelectedAttribute('age')}
-            disabled={isAgeVerified}
-          />
-          <AttributeButton
-            icon={<Globe className="w-8 h-8" />}
-            title="Nationality"
-            description="Verify your country of origin"
-            verified={isNationalityVerified}
-            onClick={() => setSelectedAttribute('nationality')}
-            disabled={isNationalityVerified}
-          />
-          <AttributeButton
-            icon={<Users className="w-8 h-8" />}
-            title="Uniqueness"
-            description="Prove you're a unique human"
-            verified={isUniquenessVerified}
-            onClick={() => setSelectedAttribute('uniqueness')}
-            disabled={isUniquenessVerified}
-          />
-        </div>
+        <>
+          {/* Show proofs availability status */}
+          {wallet.publicKey && storedProofs && (
+            <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4 mb-4">
+              <h4 className="text-blue-200 font-semibold mb-2">📦 Stored Proofs</h4>
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className={proofsAvailable.age ? 'text-green-400' : 'text-gray-500'}>
+                  {proofsAvailable.age ? '✓' : '✗'} Age
+                </div>
+                <div className={proofsAvailable.nationality ? 'text-green-400' : 'text-gray-500'}>
+                  {proofsAvailable.nationality ? '✓' : '✗'} Nationality
+                </div>
+                <div className={proofsAvailable.uniqueness ? 'text-green-400' : 'text-gray-500'}>
+                  {proofsAvailable.uniqueness ? '✓' : '✗'} Uniqueness
+                </div>
+              </div>
+              {(!proofsAvailable.age || !proofsAvailable.nationality || !proofsAvailable.uniqueness) && (
+                <p className="text-blue-300 text-xs mt-2">
+                  ⚠️ Some proofs missing. Please scan your QR code in the QR Scanner tab.
+                </p>
+              )}
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <AttributeButton
+              icon={<Calendar className="w-8 h-8" />}
+              title="Age Verification"
+              description="Prove you're above a certain age"
+              verified={isAgeVerified}
+              proofAvailable={proofsAvailable.age}
+              onClick={() => setSelectedAttribute('age')}
+              disabled={isAgeVerified || !proofsAvailable.age}
+            />
+            <AttributeButton
+              icon={<Globe className="w-8 h-8" />}
+              title="Nationality"
+              description="Verify your country of origin"
+              verified={isNationalityVerified}
+              proofAvailable={proofsAvailable.nationality}
+              onClick={() => setSelectedAttribute('nationality')}
+              disabled={isNationalityVerified || !proofsAvailable.nationality}
+            />
+            <AttributeButton
+              icon={<Users className="w-8 h-8" />}
+              title="Uniqueness"
+              description="Prove you're a unique human"
+              verified={isUniquenessVerified}
+              proofAvailable={proofsAvailable.uniqueness}
+              onClick={() => setSelectedAttribute('uniqueness')}
+              disabled={isUniquenessVerified || !proofsAvailable.uniqueness}
+            />
+          </div>
+        </>
       ) : (
         <div className="space-y-4">
           {/* Selected Attribute Info */}
@@ -139,10 +199,10 @@ export function VerificationFlow({ identity }: VerificationFlowProps) {
                 {loading ? (
                   <>
                     <Loader className="w-5 h-5 animate-spin" />
-                    Generating ZK Proof...
+                    Loading Proof...
                   </>
                 ) : (
-                  'Generate Zero-Knowledge Proof'
+                  'Load Stored Proof'
                 )}
               </button>
 
@@ -236,6 +296,7 @@ function AttributeButton({
   title,
   description,
   verified,
+  proofAvailable,
   onClick,
   disabled
 }: {
@@ -243,6 +304,7 @@ function AttributeButton({
   title: string;
   description: string;
   verified: boolean;
+  proofAvailable?: boolean;
   onClick: () => void;
   disabled: boolean;
 }) {
@@ -263,13 +325,26 @@ function AttributeButton({
           <CheckCircle className="w-6 h-6 text-green-400" />
         </div>
       )}
-      <div className={`mb-3 ${verified ? 'text-green-400' : 'text-purple-400'}`}>
+      {!verified && proofAvailable && (
+        <div className="absolute top-3 right-3">
+          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">Ready</span>
+        </div>
+      )}
+      {!verified && !proofAvailable && (
+        <div className="absolute top-3 right-3">
+          <AlertCircle className="w-5 h-5 text-yellow-500" />
+        </div>
+      )}
+      <div className={`mb-3 ${verified ? 'text-green-400' : proofAvailable ? 'text-purple-400' : 'text-gray-500'}`}>
         {icon}
       </div>
       <h3 className="font-semibold text-white mb-2">{title}</h3>
       <p className="text-sm text-gray-400">{description}</p>
       {verified && (
         <p className="text-xs text-green-400 mt-2 font-semibold">✓ Verified</p>
+      )}
+      {!verified && !proofAvailable && (
+        <p className="text-xs text-yellow-500 mt-2">⚠️ Proof not available</p>
       )}
     </button>
   );

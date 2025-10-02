@@ -7,15 +7,24 @@ import { Buffer } from 'buffer';
  */
 export function parseAadhaarQR(qrData) {
     try {
-        // QR data is typically base64 encoded
-        const decoded = Buffer.from(qrData, 'base64');
+        let parts;
         
-        // Parse pipe-separated values
-        const parts = decoded.toString('utf8').split('|');
+        // Try to parse as base64 first
+        try {
+            const decoded = Buffer.from(qrData, 'base64');
+            parts = decoded.toString('utf8').split('|');
+        } catch (e) {
+            // If not base64, try parsing as plain text
+            console.log('QR data is not base64, parsing as plain text');
+            parts = qrData.split('|');
+        }
         
         if (parts.length < 7) {
-            throw new Error('Invalid Aadhaar QR format');
+            console.error('Invalid Aadhaar QR format - insufficient fields:', parts.length);
+            throw new Error(`Invalid Aadhaar QR format - expected at least 7 fields, got ${parts.length}`);
         }
+
+        console.log('✅ Successfully parsed Aadhaar QR with', parts.length, 'fields');
 
         return {
             version: parts[0],
@@ -30,7 +39,7 @@ export function parseAadhaarQR(qrData) {
 
     } catch (error) {
         console.error('Error parsing Aadhaar QR:', error);
-        throw new Error('Failed to parse Aadhaar QR code');
+        throw new Error('Failed to parse Aadhaar QR code: ' + error.message);
     }
 }
 

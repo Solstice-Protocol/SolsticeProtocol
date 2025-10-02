@@ -71,10 +71,15 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       setError(null);
 
       console.log('🔄 Registering identity on-chain...');
+      console.log('📍 Wallet:', wallet.publicKey.toString());
+      console.log('📍 Commitment:', commitment);
+      console.log('📍 Merkle Root:', merkleRoot);
       
       // Create Anchor provider and program
       const provider = createProvider(wallet as AnchorWallet, connection);
       const program = getSolsticeProgram(provider);
+      
+      console.log('✅ Program initialized:', program.programId.toString());
 
       // Register identity on-chain with actual transaction
       const txSignature = await registerIdentityOnChain(
@@ -103,7 +108,20 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       return false;
     } catch (err: any) {
       console.error('❌ Registration failed:', err);
-      const errorMsg = err.response?.data?.error || err.message || 'Failed to register identity';
+      
+      // Handle specific Solana errors
+      let errorMsg = err.response?.data?.error || err.message || 'Failed to register identity';
+      
+      // Check for duplicate transaction error
+      if (errorMsg.includes('already been processed') || errorMsg.includes('This transaction has already been processed')) {
+        errorMsg = 'This identity was already registered. Try refreshing the page.';
+        // Even though there's an error, the identity might actually be on-chain
+        // Try to fetch it
+        if (wallet.publicKey) {
+          setTimeout(() => fetchIdentity(wallet.publicKey!.toString()), 1000);
+        }
+      }
+      
       setError(errorMsg);
       return false;
     } finally {
@@ -116,15 +134,16 @@ export function SolsticeProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      const response = await axios.post(`${API_BASE_URL}/proof/generate`, {
-        attributeType,
-        privateInputs,
-        publicInputs
-      });
-
-      return response.data;
+      // Generate proof locally in browser (privacy-preserving!)
+      console.log('🔐 Generating proof locally in browser...');
+      console.log('   Type:', attributeType);
+      
+      // TODO: Implement browser-based proof generation with snarkjs
+      // For now, show message that proofs are auto-generated after QR scan
+      throw new Error('Proofs are automatically generated after QR scan. Check the Verification Flow tab.');
+      
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error || 'Failed to generate proof';
+      const errorMsg = err.message || 'Failed to generate proof';
       setError(errorMsg);
       throw new Error(errorMsg);
     } finally {
