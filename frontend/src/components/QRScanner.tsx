@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import jsQR from 'jsqr';
 import { useSolstice } from '../contexts/SolsticeContext';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Camera, Upload, CheckCircle, Loader } from 'lucide-react';
+import { Camera, Upload, CheckCircle, Loader, X } from 'lucide-react';
 import { generateAllProofs, storeProofs } from '../lib/proofGenerator';
 import { parseAadhaarQR, isMadhaarQR, isPhysicalCardQR } from '../lib/aadhaarParser';
 
@@ -15,8 +15,12 @@ export function QRScanner() {
   const [parsedData, setParsedData] = useState<any>(null);
   const [step, setStep] = useState<'scan' | 'parsed' | 'registered'>('scan');
   const [generatingProofs, setGeneratingProofs] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,6 +55,92 @@ export function QRScanner() {
       alert('Failed to process QR code image');
     }
   };
+
+  // Start camera and scan for QR codes
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      setScanning(true);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        
+        // Wait for video to be ready before starting to scan
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+          console.log('Camera started, beginning QR scan...');
+          scanQRFromVideo();
+        };
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      setCameraError(
+        error.name === 'NotAllowedError' 
+          ? 'Camera permission denied. Please allow camera access and try again.'
+          : 'Failed to access camera. Please ensure your device has a camera and permissions are granted.'
+      );
+      setScanning(false);
+    }
+  };
+
+  // Stop camera stream
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    setScanning(false);
+    setCameraError(null);
+  };
+
+  // Continuously scan video feed for QR codes
+  const scanQRFromVideo = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      console.warn('Video or canvas ref not available');
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
+      if (imageData) {
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) {
+          console.log('✅ QR code detected from camera!');
+          console.log('QR data length:', code.data.length, 'characters');
+          stopCamera();
+          handleQRData(code.data);
+          return;
+        }
+      }
+    }
+
+    // Continue scanning (runs ~60 times per second)
+    animationFrameRef.current = requestAnimationFrame(scanQRFromVideo);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
 
   const handleQRData = async (data: string) => {
     try {
@@ -210,7 +300,7 @@ export function QRScanner() {
         </p>
       </div>
 
-      {step === 'scan' && (
+      {step === 'scan' && !scanning && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
@@ -224,7 +314,7 @@ export function QRScanner() {
             </button>
 
             <button
-              onClick={() => setScanning(true)}
+              onClick={startCamera}
               disabled={loading}
               className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-600 rounded-xl hover:border-purple-500 transition-colors bg-gray-900/50"
             >
@@ -248,6 +338,77 @@ export function QRScanner() {
               Only cryptographic commitments are stored on-chain.
             </p>
           </div>
+        </div>
+      )}
+
+      {step === 'scan' && scanning && (
+        <div className="space-y-4">
+          <div className="bg-gray-900 rounded-xl overflow-hidden relative">
+            {/* Video element for camera feed */}
+            <video
+              ref={videoRef}
+              className="w-full h-auto"
+              playsInline
+              muted
+            />
+            {/* Hidden canvas for QR detection */}
+            <canvas ref={canvasRef} className="hidden" />
+            
+            {/* Camera overlay with scanning animation */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 bg-black/20" />
+              
+              {/* Scanning frame */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+                {/* Corner brackets */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-purple-500" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-purple-500" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-purple-500" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-purple-500" />
+                
+                {/* Animated scanning line */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-scan" />
+                </div>
+              </div>
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={stopCamera}
+              className="absolute top-4 right-4 bg-gray-900/80 hover:bg-gray-800 text-white p-2 rounded-lg transition-colors z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Scanning indicator */}
+            <div className="absolute top-4 left-4 bg-purple-600/80 px-3 py-1 rounded-full flex items-center gap-2 z-10">
+              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+              <span className="text-white text-sm font-medium">Scanning...</span>
+            </div>
+
+            {/* Instructions */}
+            <div className="absolute bottom-4 left-4 right-4 bg-gray-900/90 rounded-lg p-4 z-10">
+              <p className="text-white text-center font-semibold">
+                📸 Position the QR code within the frame
+              </p>
+              <p className="text-gray-300 text-sm text-center mt-1">
+                Scanning automatically (~60 times per second)
+              </p>
+            </div>
+          </div>
+
+          {cameraError && (
+            <div className="bg-red-900/20 border border-red-700 rounded-lg p-4">
+              <p className="text-red-200">{cameraError}</p>
+              <button
+                onClick={stopCamera}
+                className="mt-2 text-red-300 hover:text-red-100 underline text-sm"
+              >
+                Close camera
+              </button>
+            </div>
+          )}
         </div>
       )}
 
