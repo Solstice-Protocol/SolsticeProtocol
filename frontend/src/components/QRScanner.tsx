@@ -122,7 +122,7 @@ export function QRScanner() {
       if (imageData) {
         const code = jsQR(imageData.data, imageData.width, imageData.height);
         if (code) {
-          console.log('✅ QR code detected from camera!');
+          console.log(' QR code detected from camera!');
           console.log('QR data length:', code.data.length, 'characters');
           stopCamera();
           handleQRData(code.data);

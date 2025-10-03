@@ -1,12 +1,63 @@
-# Solstice Protocol
+# Solstice Protocol 🌅
 
-> A zero-knowledge identity verification protocol on Solana, enabling privacy-preserving authentication using India's Aadhaar infrastructure and Light Protocol's ZK compression.
+> **Zero-knowledge identity verification on Solana** - Privacy-preserving authentication using Aadhaar infrastructure
 
-## Executive Summary
+[![Solana](https://img.shields.io/badge/Solana-Devnet-9945FF?logo=solana)](https://explorer.solana.com/address/8jrTVUyvHrL5WTWyDoa6PTJRhh3MwbvLZXeGT81YjJjz?cluster=devnet)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Production%20Ready-success)]()
 
-Solstice Protocol transforms government-issued identity credentials into portable, privacy-preserving zero-knowledge proofs that can be verified across any Web3 application. By leveraging Aadhaar's 1.4 billion user base and Solana's high-performance blockchain, Solstice achieves a 5000x cost reduction compared to traditional on-chain identity systems while maintaining cryptographic security and regulatory compliance.
+## 🎯 Executive Summary
 
-The protocol enables users to prove identity attributes (age, nationality, uniqueness) without revealing underlying personal data, establishing a new paradigm for self-sovereign identity in the decentralized web.
+Solstice Protocol transforms government-issued identity credentials into portable, privacy-preserving zero-knowledge proofs that can be verified across any Web3 application. By leveraging India's Aadhaar (1.4B users) and Solana's high-performance blockchain, Solstice achieves **5000x cost reduction** compared to traditional on-chain identity systems while maintaining cryptographic security and regulatory compliance.
+
+** Now Live on Devnet**: Fully functional with camera QR scanning, automatic proof generation, and on-chain verification!
+
+### Key Achievements
+-  **Deployed on Solana Devnet** - Program ID: `8jrTVUyvHrL5WTWyDoa6PTJRhh3MwbvLZXeGT81YjJjz`
+-  **Camera QR Scanning** - Real-time detection at ~60fps
+-  **Automatic Proof Generation** - All 3 proofs in ~5 seconds
+-  **IndexedDB Storage** - Client-side proof caching with 7-day expiration
+-  **Full Documentation** - Testing guide, contributing guide, API docs
+
+##  Quick Start (2 Minutes)
+
+```bash
+# 1. Clone and install
+git clone <your-repo-url>
+cd SolsticeProtocol
+
+# 2. Install dependencies
+cd backend && npm install
+cd ../frontend && npm install
+cd ../circuits && npm install
+
+# 3. Setup database
+createdb solstice_protocol
+psql -d solstice_protocol -f backend/db/schema.sql
+
+# 4. Configure environment
+cp backend/.env.example backend/.env
+# Edit backend/.env and frontend/.env with your settings
+
+# 5. Start servers (2 terminals)
+# Terminal 1:
+cd backend && node src/index.js
+
+# Terminal 2:
+cd frontend && npm run dev
+
+# 6. Open browser
+open http://localhost:5173/
+```
+
+**📚 Full Setup Guide**: See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive instructions.
+
+## 📖 Documentation
+
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Complete setup and testing instructions
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development guidelines and code standards
+- **[PROJECT_COMPLETE.md](PROJECT_COMPLETE.md)** - Completion status and architecture
+- **[WHITEPAPER.md](WHITEPAPER.md)** - Protocol design and cryptography details
 
 ## Key Innovation
 

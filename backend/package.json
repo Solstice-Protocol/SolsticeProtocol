@@ -9,29 +9,34 @@
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["solana", "identity", "zk-proof", "aadhaar"],
+  "keywords": [
+    "solana",
+    "identity",
+    "zk-proof",
+    "aadhaar"
+  ],
   "author": "Solstice Protocol Team",
   "license": "MIT",
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
-    "express": "^5.1.0",
-    "pg": "^8.16.3",
-    "dotenv": "^16.3.1",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "morgan": "^1.10.0",
-    "snarkjs": "^0.7.3",
-    "jsqr": "^1.4.0",
-    "node-rsa": "^1.1.1",
-    "crypto": "^1.0.1",
-    "uuid": "^9.0.1",
-    "redis": "^4.6.12",
+    "bs58": "^5.0.0",
     "bull": "^4.12.0",
-    "winston": "^3.11.0",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "express": "^5.1.0",
+    "helmet": "^7.1.0",
+    "jsqr": "^1.4.0",
+    "morgan": "^1.10.0",
+    "node-rsa": "^1.1.1",
+    "pg": "^8.16.3",
+    "redis": "^4.6.12",
+    "snarkjs": "^0.7.3",
     "tweetnacl": "^1.0.3",
-    "bs58": "^5.0.0"
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.1.10"
   }
 }

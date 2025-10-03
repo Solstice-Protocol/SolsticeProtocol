@@ -57,12 +57,12 @@ async function testAuthFlow() {
     
     if (!createResponse.ok) {
       console.log('   ⚠️  Expected error (identity not verified):', createData.error);
-      console.log('   ✅ Signature verification is working!\n');
+      console.log('    Signature verification is working!\n');
       return;
     }
     
     const { sessionId, token, expiresAt } = createData;
-    console.log('   ✅ Session created!');
+    console.log('    Session created!');
     console.log('   Session ID:', sessionId);
     console.log('   Token:', token.substring(0, 20) + '...');
     console.log('   Expires:', new Date(expiresAt).toISOString() + '\n');
@@ -76,7 +76,7 @@ async function testAuthFlow() {
     });
     
     const verifyData = await verifyResponse.json();
-    console.log('   ✅ Session verified!');
+    console.log('    Session verified!');
     console.log('   Wallet:', verifyData.walletAddress);
     console.log('   Expires:', new Date(verifyData.expiresAt).toISOString() + '\n');
     
@@ -89,7 +89,7 @@ async function testAuthFlow() {
     });
     
     const closeData = await closeResponse.json();
-    console.log('   ✅ Session closed!');
+    console.log('    Session closed!');
     console.log('   Message:', closeData.message + '\n');
     
     // Step 5: Verify session is closed
@@ -102,11 +102,11 @@ async function testAuthFlow() {
     
     const verifyAgainData = await verifyAgainResponse.json();
     if (!verifyAgainResponse.ok) {
-      console.log('   ✅ Session correctly invalidated!');
+      console.log('    Session correctly invalidated!');
       console.log('   Error:', verifyAgainData.error + '\n');
     }
     
-    console.log('✅ All authentication tests passed!\n');
+    console.log(' All authentication tests passed!\n');
     
   } catch (error) {
     console.error('❌ Test failed:', error);
@@ -135,7 +135,7 @@ async function testInvalidSignature() {
     const data = await response.json();
     
     if (!response.ok) {
-      console.log('✅ Invalid signature correctly rejected!');
+      console.log(' Invalid signature correctly rejected!');
       console.log('   Error:', data.error + '\n');
     } else {
       console.log('❌ Invalid signature was accepted (security issue!)');
