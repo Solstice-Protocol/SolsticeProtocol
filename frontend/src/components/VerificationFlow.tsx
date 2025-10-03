@@ -35,21 +35,22 @@ export function VerificationFlow({ identity }: VerificationFlowProps) {
   // Load stored proofs on mount
   useEffect(() => {
     if (wallet.publicKey) {
-      const proofs = getStoredProofs(wallet.publicKey.toString());
-      setStoredProofs(proofs);
-      
-      if (proofs) {
-        setProofsAvailable({
-          age: !!proofs.age,
-          nationality: !!proofs.nationality,
-          uniqueness: !!proofs.uniqueness
-        });
-        console.log('📦 Loaded stored proofs:', {
-          age: !!proofs.age,
-          nationality: !!proofs.nationality,
-          uniqueness: !!proofs.uniqueness
-        });
-      }
+      getStoredProofs(wallet.publicKey.toString()).then((proofs) => {
+        setStoredProofs(proofs);
+        
+        if (proofs) {
+          setProofsAvailable({
+            age: !!proofs.age,
+            nationality: !!proofs.nationality,
+            uniqueness: !!proofs.uniqueness
+          });
+          console.log('📦 Loaded stored proofs:', {
+            age: !!proofs.age,
+            nationality: !!proofs.nationality,
+            uniqueness: !!proofs.uniqueness
+          });
+        }
+      });
     }
   }, [wallet.publicKey]);
 
@@ -60,8 +61,8 @@ export function VerificationFlow({ identity }: VerificationFlowProps) {
       setProofGenerated(false);
       setVerificationSuccess(false);
 
-      // Get stored proof from localStorage
-      const proofs = getStoredProofs(wallet.publicKey.toString());
+      // Get stored proof from IndexedDB
+      const proofs = await getStoredProofs(wallet.publicKey.toString());
       
       if (!proofs || !proofs[selectedAttribute]) {
         alert('No proof found. Please scan your QR code again to generate proofs.');

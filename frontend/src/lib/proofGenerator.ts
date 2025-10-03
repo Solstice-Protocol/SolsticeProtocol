@@ -359,38 +359,124 @@ export function storeProofs(walletAddress: string, proofs: {
   nationality?: ProofData;
   uniqueness?: ProofData;
 }) {
-  const key = `solstice_proofs_${walletAddress}`;
-  localStorage.setItem(key, JSON.stringify({
-    proofs,
-    timestamp: Date.now()
-  }));
-  console.log('💾 Proofs stored locally');
+  // Store in IndexedDB for better capacity and persistence
+  const request = indexedDB.open('SolsticeProofs', 1);
+  
+  request.onupgradeneeded = (event: any) => {
+    const db = event.target.result;
+    if (!db.objectStoreNames.contains('proofs')) {
+      db.createObjectStore('proofs', { keyPath: 'type' });
+    }
+  };
+  
+  request.onsuccess = (event: any) => {
+    const db = event.target.result;
+    const transaction = db.transaction(['proofs'], 'readwrite');
+    const store = transaction.objectStore('proofs');
+    const timestamp = Date.now();
+    const expiresAt = timestamp + (7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    // Store each proof separately
+    if (proofs.age) {
+      store.put({
+        type: 'age',
+        status: 'valid',
+        generatedAt: timestamp,
+        expiresAt,
+        proof: proofs.age.proof,
+        publicSignals: proofs.age.publicSignals,
+        walletAddress,
+      });
+    }
+    
+    if (proofs.nationality) {
+      store.put({
+        type: 'nationality',
+        status: 'valid',
+        generatedAt: timestamp,
+        expiresAt,
+        proof: proofs.nationality.proof,
+        publicSignals: proofs.nationality.publicSignals,
+        walletAddress,
+      });
+    }
+    
+    if (proofs.uniqueness) {
+      store.put({
+        type: 'uniqueness',
+        status: 'valid',
+        generatedAt: timestamp,
+        expiresAt,
+        proof: proofs.uniqueness.proof,
+        publicSignals: proofs.uniqueness.publicSignals,
+        walletAddress,
+      });
+    }
+    
+    transaction.oncomplete = () => {
+      console.log('💾 Proofs stored in IndexedDB');
+    };
+  };
+  
+  request.onerror = () => {
+    console.error('Failed to store proofs in IndexedDB');
+  };
 }
 
 /**
  * Retrieve stored proofs
  */
-export function getStoredProofs(walletAddress: string): {
+export async function getStoredProofs(walletAddress?: string): Promise<{
   age?: ProofData;
   nationality?: ProofData;
   uniqueness?: ProofData;
-} | null {
-  const key = `solstice_proofs_${walletAddress}`;
-  const stored = localStorage.getItem(key);
-  
-  if (!stored) return null;
-  
-  try {
-    const { proofs, timestamp } = JSON.parse(stored);
+}> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open('SolsticeProofs', 1);
     
-    // Proofs expire after 7 days
-    if (Date.now() - timestamp > 7 * 24 * 60 * 60 * 1000) {
-      localStorage.removeItem(key);
-      return null;
-    }
+    request.onupgradeneeded = (event: any) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('proofs')) {
+        db.createObjectStore('proofs', { keyPath: 'type' });
+      }
+    };
     
-    return proofs;
-  } catch {
-    return null;
-  }
+    request.onsuccess = (event: any) => {
+      const db = event.target.result;
+      const transaction = db.transaction(['proofs'], 'readonly');
+      const store = transaction.objectStore('proofs');
+      const getAllRequest = store.getAll();
+      
+      getAllRequest.onsuccess = () => {
+        const allProofs = getAllRequest.result || [];
+        const now = Date.now();
+        
+        // Filter by wallet address if provided and check expiration
+        const validProofs = allProofs.filter((p: any) => {
+          const matchesWallet = !walletAddress || p.walletAddress === walletAddress;
+          const notExpired = !p.expiresAt || p.expiresAt > now;
+          return matchesWallet && notExpired;
+        });
+        
+        // Convert to expected format
+        const result: any = {};
+        validProofs.forEach((p: any) => {
+          result[p.type] = {
+            proof: p.proof,
+            publicSignals: p.publicSignals,
+          };
+        });
+        
+        resolve(result);
+      };
+      
+      getAllRequest.onerror = () => {
+        resolve({});
+      };
+    };
+    
+    request.onerror = () => {
+      resolve({});
+    };
+  });
 }

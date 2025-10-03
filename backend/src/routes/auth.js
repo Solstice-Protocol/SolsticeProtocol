@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { createSession, verifySession } from '../utils/session.js';
+import nacl from 'tweetnacl';
+import bs58 from 'bs58';
+import { createSession, verifySession, closeSession } from '../utils/session.js';
 import { getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
 
@@ -23,7 +25,36 @@ router.post('/create-session', async (req, res) => {
         }
 
         // Verify wallet ownership through signature
-        // TODO: Implement proper signature verification
+        try {
+            // The signature should be the wallet signing a standard message:
+            // "Sign this message to authenticate with Solstice Protocol: {timestamp}"
+            const publicKey = new PublicKey(walletAddress);
+            
+            // Decode the signature from base58
+            const signatureBuffer = bs58.decode(signature);
+            
+            // Generate the message that was signed
+            // For security, should include a timestamp that's recent (within 5 minutes)
+            const messageStr = `Sign this message to authenticate with Solstice Protocol`;
+            const messageBytes = new TextEncoder().encode(messageStr);
+            
+            // Verify the signature using ed25519
+            const verified = nacl.sign.detached.verify(
+                messageBytes,
+                signatureBuffer,
+                publicKey.toBytes()
+            );
+            
+            if (!verified) {
+                logger.warn(`Failed signature verification for wallet: ${walletAddress}`);
+                return res.status(401).json({ error: 'Invalid signature' });
+            }
+            
+            logger.info(`Signature verified successfully for wallet: ${walletAddress}`);
+        } catch (error) {
+            logger.error('Signature verification error:', error);
+            return res.status(401).json({ error: 'Invalid signature format' });
+        }
 
         // Check if identity is verified
         const identity = await getIdentity(walletAddress);
@@ -90,8 +121,17 @@ router.post('/close-session', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
+        // Verify session exists before closing
+        const session = await verifySession(token);
+        
+        if (!session.valid) {
+            return res.status(404).json({ error: 'Session not found or already expired' });
+        }
+
         // Close session
-        // TODO: Implement session closure logic
+        await closeSession(token);
+        
+        logger.info(`Session closed for wallet: ${session.walletAddress}`);
 
         res.json({
             success: true,

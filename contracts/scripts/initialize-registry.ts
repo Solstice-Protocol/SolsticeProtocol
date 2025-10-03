@@ -14,8 +14,8 @@ const IDL = JSON.parse(
 
 // Configuration
 const DEVNET_RPC = 'https://api.devnet.solana.com';
-const PROGRAM_ID = 'ELqNcvWpY4L5qAe7P4PuEKMo86zrouKctZF3KuSysuYY';
-const KEYPAIR_PATH = process.env.HOME + '/.config/solana/id.json';
+const PROGRAM_ID = '8jrTVUyvHrL5WTWyDoa6PTJRhh3MwbvLZXeGT81YjJjz';
+const KEYPAIR_PATH = process.env.HOME + '/.config/solana/my-keypair.json';
 
 async function main() {
   console.log('Initializing Solstice Protocol Registry on Devnet\n');

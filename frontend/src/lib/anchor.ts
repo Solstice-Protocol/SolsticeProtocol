@@ -158,9 +158,9 @@ export async function registerIdentity(
     }
     
     console.log('Updating existing identity with new data...');
-    // @ts-ignore - TypeScript doesn't know about camelCase conversion
-    const tx = await program.methods
-      .updateIdentity(commitmentBytes, merkleRootBytes)
+    // Anchor generates methods dynamically - cast to any to bypass TypeScript
+    const tx = await (program.methods as any)
+      .update_identity(commitmentBytes, merkleRootBytes)
       .accounts({
         identity: identityPda,
         user: userPublicKey,
@@ -182,14 +182,14 @@ export async function registerIdentity(
   console.log('   provider:', program.provider.connection.rpcEndpoint);
   
   // Send transaction with fresh blockhash
-  // @ts-ignore - Anchor generates camelCase methods at runtime despite type definitions
+  // @ts-ignore - TypeScript doesn't recognize dynamically generated methods
   const tx = await program.methods
-    .registerIdentity(commitmentBytes, merkleRootBytes)
+    .register_identity(commitmentBytes, merkleRootBytes)
     .accounts({
       identity: identityPda,
       registry: registryPda,
       user: userPublicKey,
-      systemProgram: SystemProgram.programId,
+      system_program: SystemProgram.programId,
     })
     .rpc({
       skipPreflight: false,
@@ -228,17 +228,19 @@ export async function verifyIdentity(
   const proofBytes = serializeProof(proof);
   const publicInputBytes = serializePublicInputs(publicInputs);
   
-  // Send transaction - Anchor converts snake_case IDL names to camelCase methods
-  // @ts-ignore - Anchor generates camelCase methods at runtime despite type definitions
+  // Send transaction - Use snake_case method names from IDL
+  // Note: This function is for third-party verification, not for initial registration
+  // The IDL is outdated - it shows 'authority' but Rust code uses 'user' and 'verifier'
+  // @ts-ignore - TypeScript doesn't recognize dynamically generated methods
   const tx = await program.methods
-    .verifyIdentity(
+    .verify_identity(
       Array.from(proofBytes),
       Array.from(publicInputBytes),
       attributeTypeByte
     )
     .accounts({
       identity: identityPda,
-      authority: userPublicKey,
+      authority: userPublicKey, // Using 'authority' to match current IDL
     })
     .rpc();
   

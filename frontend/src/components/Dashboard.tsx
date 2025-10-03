@@ -3,7 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolstice } from '../contexts/SolsticeContext';
 import { QRScanner } from './QRScanner';
 import { IdentityStatus } from './IdentityStatus';
-import { VerificationFlow } from './VerificationFlow';
+import { ProofsDashboard } from './ProofsDashboard';
 import { AlertCircle } from 'lucide-react';
 
 export function Dashboard() {
@@ -80,9 +80,8 @@ export function Dashboard() {
                 ? 'bg-purple-600 text-white'
                 : 'bg-gray-900/50 text-gray-400 hover:text-white'
             }`}
-            disabled={!identity}
           >
-            Verify Attributes
+            My Proofs
           </button>
           <button
             onClick={() => setActiveTab('status')}
@@ -99,7 +98,7 @@ export function Dashboard() {
         {/* Tab Content */}
         <div className="p-6">
           {activeTab === 'scan' && <QRScanner />}
-          {activeTab === 'verify' && identity && <VerificationFlow identity={identity} />}
+          {activeTab === 'verify' && <ProofsDashboard />}
           {activeTab === 'status' && <IdentityStatus identity={identity} loading={loading} expanded />}
         </div>
       </div>
