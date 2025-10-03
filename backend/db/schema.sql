@@ -120,6 +120,6 @@ DO $$
 BEGIN
     RAISE NOTICE '  Solstice Protocol database schema created successfully!';
     RAISE NOTICE ' Tables created: identities, identity_verifications, verification_sessions, audit_log';
-    RAISE NOTICE '🔍 Indexes created for performance optimization';
-    RAISE NOTICE '⚡ Triggers and functions configured';
+    RAISE NOTICE ' Indexes created for performance optimization';
+    RAISE NOTICE 'Triggers and functions configured';
 END $$;
