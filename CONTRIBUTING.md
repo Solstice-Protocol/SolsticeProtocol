@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Solstice Protocol! This document provides guidelines and standards for contributing to the project.
 
-## 🤝 Code of Conduct
+## Code of Conduct
 
 - Be respectful and inclusive
 - Welcome newcomers and help them get started
@@ -93,7 +93,7 @@ export function MyComponent({ prop }: Props) {
   return <div>{state}</div>;
 }
 
-// ❌ Bad: Class components
+//  Bad: Class components
 export class MyComponent extends React.Component {
   // Don't use class components
 }
@@ -114,7 +114,7 @@ async function fetchData() {
   }
 }
 
-// ❌ Bad: Unhandled promises
+//  Bad: Unhandled promises
 async function fetchData() {
   return fetch(url).then(r => r.json()); // No error handling
 }
@@ -156,7 +156,7 @@ pub fn register_identity(ctx: Context<RegisterIdentity>, identity_hash: [u8; 32]
     Ok(())
 }
 
-// ❌ Bad: Missing validation
+//  Bad: Missing validation
 pub fn register_identity(ctx: Context<RegisterIdentity>, identity_hash: [u8; 32]) -> Result<()> {
     ctx.accounts.identity.identity_hash = identity_hash; // No validation!
     Ok(())
@@ -412,7 +412,7 @@ git commit -m "test(circuits): add age proof unit tests"
    - [ ] Tests added for new features
    ```
 
-## 🐛 Reporting Bugs
+## Reporting Bugs
 
 ### Before Submitting
 
@@ -453,7 +453,7 @@ Any other relevant information.
 ```
 ```
 
-## 💡 Suggesting Features
+## Suggesting Features
 
 ### Feature Request Template
 
@@ -471,7 +471,7 @@ Other solutions you've considered.
 Mockups, examples, or other relevant info.
 ```
 
-## 📚 Documentation
+## Documentation
 
 ### Documentation Standards
 
@@ -508,7 +508,7 @@ export async function generateAgeProof(params: AgeProofParams): Promise<Proof> {
 }
 ```
 
-## 🔒 Security
+## Security
 
 ### Reporting Security Vulnerabilities
 
@@ -533,7 +533,7 @@ We'll respond within 48 hours.
 - Use HTTPS in production
 - Keep dependencies updated
 
-## 🎨 UI/UX Guidelines
+## UI/UX Guidelines
 
 - Follow existing design patterns
 - Ensure mobile responsiveness
@@ -546,7 +546,7 @@ We'll respond within 48 hours.
 - Show clear error messages
 - Provide visual feedback for user actions
 
-## 🚢 Release Process
+## Release Process
 
 Maintainers will:
 1. Create release branch (`release/v1.2.0`)
@@ -556,17 +556,5 @@ Maintainers will:
 5. Tag commit (`v1.2.0`)
 6. Deploy to production
 
-## 📞 Getting Help
 
-- **Discord**: Join our community server
-- **GitHub Discussions**: Ask questions
-- **Email**: dev@solsticeprotocol.com
-
-## 🙏 Recognition
-
-Contributors will be:
-- Listed in CONTRIBUTORS.md
-- Mentioned in release notes
-- Eligible for community rewards
-
-Thank you for contributing to Solstice Protocol! 🎉
+Thank you for contributing to Solstice Protocol! We appreciate your efforts to make this project better.

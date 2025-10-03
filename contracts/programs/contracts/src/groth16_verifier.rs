@@ -68,7 +68,7 @@ pub fn verify_groth16_proof(
     if is_valid {
         msg!("  Groth16 proof verification successful");
     } else {
-        msg!("❌ Groth16 proof verification failed");
+        msg!(" Groth16 proof verification failed");
         return Err(error!(crate::errors::ErrorCode::ProofVerificationFailed));
     }
     

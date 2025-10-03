@@ -109,7 +109,7 @@ async function testAuthFlow() {
     console.log(' All authentication tests passed!\n');
     
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    console.error(' Test failed:', error);
   }
 }
 
@@ -138,10 +138,10 @@ async function testInvalidSignature() {
       console.log(' Invalid signature correctly rejected!');
       console.log('   Error:', data.error + '\n');
     } else {
-      console.log('❌ Invalid signature was accepted (security issue!)');
+      console.log(' Invalid signature was accepted (security issue!)');
     }
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    console.error(' Test failed:', error);
   }
 }
 

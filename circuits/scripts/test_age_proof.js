@@ -11,7 +11,7 @@ const path = require('path');
 const BUILD_DIR = path.join(__dirname, '..', 'build');
 
 async function testAgeProof() {
-    console.log('🧪 Testing Age Proof Circuit\n');
+    console.log('Testing Age Proof Circuit\n');
     console.log('═'.repeat(50));
     
     // Check if files exist
@@ -107,7 +107,7 @@ async function testAgeProof() {
     console.log('Input:', JSON.stringify(input2, null, 2));
     
     try {
-        console.log('\n⏳ Generating proof...');
+        console.log('\n Generating proof...');
         const startTime = Date.now();
         
         const { proof, publicSignals } = await snarkjs.groth16.fullProve(
@@ -122,7 +122,7 @@ async function testAgeProof() {
         console.log('\nPublic Signals:', publicSignals);
         
         // Verify the proof
-        console.log('\n⏳ Verifying proof...');
+        console.log('\nVerifying proof...');
         const vkey = JSON.parse(fs.readFileSync(vkeyPath, 'utf8'));
         const verifyStartTime = Date.now();
         
@@ -182,7 +182,7 @@ async function testAgeProof() {
     console.log('All tests passed!');
     console.log('Age proof circuit is working correctly');
     console.log('Groth16 verification is functioning');
-    console.log('\n🎉 Circuit is ready for production use!\n');
+    console.log('\n Circuit is ready for production use!\n');
 }
 
 // Run the test

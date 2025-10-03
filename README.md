@@ -1,4 +1,4 @@
-# Solstice Protocol 🌅
+# Solstice Protocol
 
 > **Zero-knowledge identity verification on Solana** - Privacy-preserving authentication using Aadhaar infrastructure
 
@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-success)]()
 
-## 🎯 Executive Summary
+## Executive Summary
 
 Solstice Protocol transforms government-issued identity credentials into portable, privacy-preserving zero-knowledge proofs that can be verified across any Web3 application. By leveraging India's Aadhaar (1.4B users) and Solana's high-performance blockchain, Solstice achieves **5000x cost reduction** compared to traditional on-chain identity systems while maintaining cryptographic security and regulatory compliance.
 
@@ -50,9 +50,9 @@ cd frontend && npm run dev
 open http://localhost:5173/
 ```
 
-**📚 Full Setup Guide**: See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive instructions.
+**Full Setup Guide**: See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive instructions.
 
-## 📖 Documentation
+## Documentation
 
 - **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Complete setup and testing instructions
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development guidelines and code standards
@@ -362,36 +362,12 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 ## Contact
 
 - **Website**: [Coming Soon]
-- **GitHub**: [https://github.com/Shaurya2k06/SolsticeProtocol](https://github.com/Shaurya2k06/SolsticeProtocol)
+- **GitHub**: [https://github.com/Solstice-Protocol](https://github.com/Solstice-Protocol)
 - **Email**: [Coming Soon]
 - **Twitter**: [Coming Soon]
 - **Discord**: [Coming Soon]
 
-## Roadmap
 
-### Phase 1: Foundation (Q1 2025)
-- Core protocol implementation
-- Basic circuit compilation
-- Devnet deployment
-- Initial testing framework
-
-### Phase 2: Enhancement (Q2 2025)
-- Production-ready Groth16 verification
-- Light Protocol integration
-- Browser-based proof generation
-- Enhanced UX/UI
-
-### Phase 3: Mainnet (Q3 2025)
-- Security audits
-- Mainnet deployment
-- Developer SDK release
-- dApp integration toolkit
-
-### Phase 4: Expansion (Q4 2025)
-- Multi-country identity support
-- Advanced privacy features
-- Mobile application
-- Enterprise solutions
 
 ---
 

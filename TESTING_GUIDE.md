@@ -8,7 +8,7 @@
 -  Node.js v18+ installed
 -  Chrome/Firefox browser (for camera access)
 
-## 🔧 Local Development Setup
+## Local Development Setup
 
 ### 1. Clone and Install Dependencies
 
@@ -103,7 +103,7 @@ npm run dev
 # Should see: "Local: http://localhost:5173/"
 ```
 
-## 🧪 Testing Workflows
+## Testing Workflows
 
 ### Test 1: Identity Registration (QR Upload)
 
@@ -238,7 +238,7 @@ ts-node check-identity-exists.ts <YOUR_WALLET_ADDRESS>
 # - Is verified: true/false
 ```
 
-## 🐛 Common Issues & Troubleshooting
+## Common Issues & Troubleshooting
 
 ### Issue: "AccountNotEnoughKeys" Error
 **Solution**: This was fixed in the architecture update. Ensure you're using the latest code.
@@ -294,7 +294,7 @@ ts-node check-identity-exists.ts <YOUR_WALLET_ADDRESS>
 - **Memory Usage**: ~100 MB (frontend)
 - **Network**: ~50 KB upload per registration
 
-## 🔍 Debug Mode
+## Debug Mode
 
 ### Enable Verbose Logging
 
@@ -335,33 +335,3 @@ const DEBUG = true;
    - `nationality_proof`: Contains proof, publicSignals
    - `uniqueness_proof`: Contains proof, publicSignals
    - Each has `generatedAt` and `expiresAt` timestamps
-
-##  Acceptance Criteria
-
-### Must Pass Before Production
-
-- [ ] All QR types parse correctly (Aadhaar, passport, etc.)
-- [ ] Camera scanning works on mobile devices
-- [ ] All 3 ZK proofs generate within 5 seconds
-- [ ] Proofs expire after 7 days automatically
-- [ ] Transaction confirmation < 3 seconds on devnet
-- [ ] No console errors in browser
-- [ ] No uncaught exceptions in backend logs
-- [ ] Database connections properly pooled
-- [ ] All API endpoints return proper status codes
-- [ ] Wallet connection works with all major wallets
-
-## 🎯 Next Steps
-
-1. **Security Audit**: Review smart contract code
-2. **Load Testing**: Test with 100+ concurrent users
-3. **Mobile Testing**: Test on iOS/Android devices
-4. **Mainnet Deployment**: Deploy to Solana mainnet
-5. **Monitoring**: Set up Datadog/New Relic
-6. **CI/CD**: GitHub Actions for automated testing
-
-## 📞 Support
-
-- GitHub Issues: Report bugs and feature requests
-- Discord: Join our community for support
-- Documentation: See README.md and WHITEPAPER.md
