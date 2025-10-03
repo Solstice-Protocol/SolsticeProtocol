@@ -10,7 +10,11 @@ export function QRScanner() {
   const { parseQRCode, registerIdentity, loading } = useSolstice();
   const wallet = useWallet();
   const [scanning, setScanning] = useState(false);
-  const [qrData, setQrData] = useState<string | null>(null);
+  // qrData is handled directly via callbacks; provide a local no-op setter to keep calls harmless
+  const handleSetQrData = (d: string | null) => {
+    // intentionally empty: we don't persist qrData to state to avoid extra re-renders
+    return;
+  };
   const [commitment, setCommitment] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<any>(null);
   const [step, setStep] = useState<'scan' | 'parsed' | 'registered'>('scan');
@@ -144,7 +148,7 @@ export function QRScanner() {
 
   const handleQRData = async (data: string) => {
     try {
-      setQrData(data);
+  handleSetQrData(data);
       
       console.log('Raw QR data received');
       console.log('Length:', data.length, 'characters');
@@ -285,7 +289,7 @@ export function QRScanner() {
   };
 
   const resetFlow = () => {
-    setQrData(null);
+  handleSetQrData(null);
     setCommitment(null);
     setStep('scan');
     setScanning(false);

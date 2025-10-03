@@ -4,7 +4,10 @@
  * Based on implementation from Self Protocol: https://github.com/selfxyz/self
  */
 
-import { convertBigIntToByteArray, decompressByteArray } from '@anon-aadhaar/core';
+// The upstream package ships some TypeScript source; we use a default import shim
+import aadhaarCore from '@anon-aadhaar/core';
+
+const { convertBigIntToByteArray, decompressByteArray } = aadhaarCore as any;
 
 export interface AadhaarData {
   name: string;
