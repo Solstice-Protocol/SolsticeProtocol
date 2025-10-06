@@ -1,4 +1,4 @@
-`# Contributing to Solstice Protocol
+# Contributing to Solstice Protocol
 
 Thank you for your interest in contributing to Solstice Protocol! This document provides guidelines and standards for contributing to the project.
 
