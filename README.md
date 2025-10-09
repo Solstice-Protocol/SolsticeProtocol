@@ -306,8 +306,6 @@ For developers interested in integrating Solstice Protocol or running a local in
 4. **Deploy Contracts**: `cd contracts && anchor build && anchor deploy`
 5. **Start Services**: Run backend (`npm run dev`) and frontend (`npm run dev`)
 
-For detailed setup instructions, see [TESTING_GUIDE.md](./TESTING_GUIDE.md)
-
 ## Repository Structure
 
 ```
