@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import identityRoutes from './routes/identity.js';
 import proofRoutes from './routes/proof.js';
 import authRoutes from './routes/auth.js';
+import challengesRoutes from './routes/challenges.js';
 import { logger } from './utils/logger.js';
 import { connectDB } from './db/connection.js';
 
@@ -16,8 +17,25 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet());
+
+// Allow multiple origins for development (main website and testing app)
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -37,6 +55,7 @@ app.get('/health', (req, res) => {
 app.use('/api/identity', identityRoutes);
 app.use('/api/proof', proofRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/challenges', challengesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

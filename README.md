@@ -10,7 +10,18 @@
 
 Solstice Protocol transforms government-issued identity credentials into portable, privacy-preserving zero-knowledge proofs that can be verified across any Web3 application. By leveraging India's Aadhaar (1.4B users) and Solana's high-performance blockchain, Solstice achieves **5000x cost reduction** compared to traditional on-chain identity systems while maintaining cryptographic security and regulatory compliance.
 
-** Now Live on Devnet**: Fully functional with camera QR scanning, automatic proof generation, and on-chain verification!
+**✨ Now Live on Devnet**: Fully functional with camera QR scanning, automatic proof generation, and on-chain verification!
+
+## 🏗️ Architecture: Challenge-Response Flow
+
+Solstice uses a **challenge-response architecture** to protect user privacy:
+
+1. **Identity Registration** (once): Users register in the main Solstice app by scanning their Aadhaar QR code
+2. **Challenge Generation**: Third-party apps create verification challenges (e.g., "prove you're 18+")
+3. **User Response**: Users scan challenges with the Solstice app, which generates ZK proofs
+4. **Verification**: Third-party apps verify proofs without ever seeing personal data
+
+**Key Insight**: Users NEVER share their Aadhaar data with third-party apps. Only cryptographic proofs are exchanged.
 
 ### Key Achievements
 -  **Deployed on Solana Devnet** - Program ID: `8jrTVUyvHrL5WTWyDoa6PTJRhh3MwbvLZXeGT81YjJjz`
@@ -61,7 +72,7 @@ open http://localhost:5173/
 
 ## Key Innovation
 
-**Self-Sovereign Identity on Solana**: Inspired by Self Protocol on Celo, Solstice brings browser-based, privacy-preserving identity verification to Solana's ecosystem. Users scan their mAadhaar QR code once, and the system automatically generates all necessary zero-knowledge proofs locally in their browser—no personal data ever leaves their device.
+**Self-Sovereign Identity on Solana**: Solstice brings browser-based, privacy-preserving identity verification to Solana's ecosystem. Users scan their mAadhaar QR code once, and the system automatically generates all necessary zero-knowledge proofs locally in their browser—no personal data ever leaves their device.
 
 ## Core Features
 
