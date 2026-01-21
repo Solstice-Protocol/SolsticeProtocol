@@ -7,6 +7,8 @@ let pool;
 
 export async function connectDB() {
     try {
+        const isAzure = process.env.DB_HOST && process.env.DB_HOST.includes('azure.com');
+        
         pool = new Pool({
             host: process.env.DB_HOST || 'localhost',
             port: process.env.DB_PORT || 5432,
@@ -16,6 +18,7 @@ export async function connectDB() {
             max: 20,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 2000,
+            ssl: isAzure ? { rejectUnauthorized: false } : false,
         });
 
         // Test connection
