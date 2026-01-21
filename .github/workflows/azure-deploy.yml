@@ -18,13 +18,19 @@ jobs:
         with:
           node-version: '22.x'
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         working-directory: ./backend
         run: npm ci
 
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy-package
+          cp -r backend deploy-package/
+          cp -r circuits deploy-package/
+          
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'solstice-api'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./backend
+          package: ./deploy-package
