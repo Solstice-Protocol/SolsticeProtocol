@@ -9,7 +9,7 @@ import authRoutes from './routes/auth.js';
 import challengesRoutes from './routes/challenges.js';
 import { logger } from './utils/logger.js';
 import { connectDB } from './db/connection.js';
-import { validateEnvironment } from './utils/env.js';
+import { validateEnvironment, getConfig } from './utils/env.js';
 import { standardRateLimiter, strictRateLimiter, lenientRateLimiter } from './middleware/rateLimiter.js';
 import { validateContentType } from './middleware/validation.js';
 
@@ -22,6 +22,8 @@ try {
     logger.error('Environment validation failed:', error);
     process.exit(1);
 }
+
+const config = getConfig();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -135,11 +137,11 @@ async function startServer() {
                 process.exit(0);
             });
 
-            // Force shutdown after 10 seconds
+            // Force shutdown after timeout
             setTimeout(() => {
                 logger.error('Forced shutdown after timeout');
                 process.exit(1);
-            }, 10000);
+            }, config.shutdownTimeout);
         };
 
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

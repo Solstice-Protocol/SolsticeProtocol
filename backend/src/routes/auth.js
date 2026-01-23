@@ -5,7 +5,7 @@ import bs58 from 'bs58';
 import { createSession, verifySession, closeSession } from '../utils/session.js';
 import { getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
-import { isValidWalletAddress, isValidTimestamp } from '../middleware/validation.js';
+import { isValidWalletAddress, isValidTimestamp, isValidSignature } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -30,8 +30,8 @@ router.post('/create-session', async (req, res) => {
             return res.status(400).json({ error: 'Invalid wallet address format' });
         }
 
-        // Validate signature format (base58, ~88 chars)
-        if (!/^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(signature)) {
+        // Validate signature format
+        if (!isValidSignature(signature)) {
             return res.status(400).json({ error: 'Invalid signature format' });
         }
 

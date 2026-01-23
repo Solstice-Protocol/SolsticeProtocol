@@ -60,16 +60,24 @@ export function isValidAttributeType(attributeType) {
 
 /**
  * Sanitize string input
+ * Removes HTML tags and limits length
+ * Uses multiple passes to ensure all tags are removed
  */
 export function sanitizeString(input, maxLength = 1000) {
     if (typeof input !== 'string') {
         return '';
     }
-    // Remove any potential script tags and limit length
-    return input
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .substring(0, maxLength)
-        .trim();
+    
+    let sanitized = input;
+    let previousLength;
+    
+    // Keep removing HTML tags until no more tags are found
+    do {
+        previousLength = sanitized.length;
+        sanitized = sanitized.replace(/<[^>]*>/g, '');
+    } while (sanitized.length !== previousLength);
+    
+    return sanitized.substring(0, maxLength).trim();
 }
 
 /**
@@ -119,6 +127,17 @@ export function validateContentType(req, res, next) {
     }
     
     next();
+}
+
+/**
+ * Validate signature format (base58 encoded, 87-88 characters)
+ */
+export function isValidSignature(signature) {
+    if (!signature || typeof signature !== 'string') {
+        return false;
+    }
+    // Base58 encoded signature, typically 87-88 characters
+    return /^[1-9A-HJ-NP-Za-km-z]{87,88}$/.test(signature);
 }
 
 /**

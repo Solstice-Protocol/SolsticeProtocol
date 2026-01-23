@@ -26,7 +26,8 @@ const OPTIONAL_VARS = {
     RATE_LIMIT_WINDOW: '900000',
     RATE_LIMIT_MAX_REQUESTS: '100',
     SESSION_EXPIRY: '86400000',
-    SOLANA_NETWORK: 'devnet'
+    SOLANA_NETWORK: 'devnet',
+    SHUTDOWN_TIMEOUT: '10000'
 };
 
 /**
@@ -158,6 +159,7 @@ export function getConfig() {
         },
         logging: {
             level: process.env.LOG_LEVEL
-        }
+        },
+        shutdownTimeout: parseInt(process.env.SHUTDOWN_TIMEOUT) || 10000
     };
 }

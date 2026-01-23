@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix"
   },
   "keywords": [
     "solana",
@@ -37,6 +39,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "eslint": "^8.56.0",
     "nodemon": "^3.1.10"
   }
 }
