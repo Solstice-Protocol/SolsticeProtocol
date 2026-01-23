@@ -9,14 +9,44 @@ import authRoutes from './routes/auth.js';
 import challengesRoutes from './routes/challenges.js';
 import { logger } from './utils/logger.js';
 import { connectDB } from './db/connection.js';
+import { validateEnvironment } from './utils/env.js';
+import { standardRateLimiter, strictRateLimiter, lenientRateLimiter } from './middleware/rateLimiter.js';
+import { validateContentType } from './middleware/validation.js';
 
 dotenv.config();
+
+// Validate environment variables on startup
+try {
+    validateEnvironment();
+} catch (error) {
+    logger.error('Environment validation failed:', error);
+    process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+            connectSrc: ["'self'"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+        },
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
 
 // Allow multiple origins for development (main website and testing app)
 const allowedOrigins = [
@@ -39,8 +69,12 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
+app.use(validateContentType);
+
+// Trust proxy for rate limiting (if behind reverse proxy)
+app.set('trust proxy', 1);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -51,11 +85,11 @@ app.get('/health', (req, res) => {
     });
 });
 
-// API Routes
-app.use('/api/identity', identityRoutes);
-app.use('/api/proof', proofRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/challenges', challengesRoutes);
+// API Routes with rate limiting
+app.use('/api/identity', standardRateLimiter, identityRoutes);
+app.use('/api/proof', standardRateLimiter, proofRoutes);
+app.use('/api/auth', strictRateLimiter, authRoutes);
+app.use('/api/challenges', lenientRateLimiter, challengesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -78,10 +112,39 @@ async function startServer() {
         await connectDB();
         logger.info('Database connected successfully');
 
-        app.listen(PORT, () => {
+        const server = app.listen(PORT, () => {
             logger.info(`Solstice Protocol API running on port ${PORT}`);
             logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
         });
+
+        // Graceful shutdown
+        const gracefulShutdown = async (signal) => {
+            logger.info(`${signal} signal received: closing HTTP server`);
+            server.close(async () => {
+                logger.info('HTTP server closed');
+                
+                // Close database connection
+                try {
+                    const { closeDB } = await import('./db/connection.js');
+                    await closeDB();
+                    logger.info('Database connection closed');
+                } catch (error) {
+                    logger.error('Error closing database:', error);
+                }
+                
+                process.exit(0);
+            });
+
+            // Force shutdown after 10 seconds
+            setTimeout(() => {
+                logger.error('Forced shutdown after timeout');
+                process.exit(1);
+            }, 10000);
+        };
+
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
     } catch (error) {
         logger.error('Failed to start server:', error);
         process.exit(1);

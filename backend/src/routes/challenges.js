@@ -1,6 +1,7 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
+import { isValidUUID, isValidProofType, sanitizeString } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -32,14 +33,38 @@ router.post('/create', async (req, res) => {
       });
     }
 
+    // Validate proof type
+    if (!isValidProofType(proofType)) {
+      return res.status(400).json({ error: 'Invalid proof type' });
+    }
+
+    // Sanitize string inputs
+    const sanitizedAppId = sanitizeString(appId, 100);
+    const sanitizedAppName = sanitizeString(appName, 200);
+
+    // Validate expiration
+    const expiration = expirationSeconds || 300;
+    if (expiration < 60 || expiration > 3600) {
+      return res.status(400).json({ error: 'Expiration must be between 60 and 3600 seconds' });
+    }
+
+    // Validate callback URL if provided
+    if (callbackUrl) {
+      try {
+        new URL(callbackUrl);
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid callback URL' });
+      }
+    }
+
     const challengeId = uuidv4();
     const now = Date.now();
-    const expiresAt = now + ((expirationSeconds || 300) * 1000); // Default 5 minutes
+    const expiresAt = now + (expiration * 1000);
 
     const challenge = {
       challengeId,
-      appId,
-      appName,
+      appId: sanitizedAppId,
+      appName: sanitizedAppName,
       proofType,
       params: params || {},
       expiresAt,
@@ -81,6 +106,11 @@ router.post('/create', async (req, res) => {
 router.get('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid challenge ID format' });
+    }
+
     const challenge = challenges.get(id);
 
     if (!challenge) {
@@ -113,6 +143,10 @@ router.post('/:id/respond', async (req, res) => {
   try {
     const { id } = req.params;
     const proofResponse = req.body;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid challenge ID format' });
+    }
 
     logger.info(`Received proof response for challenge ${id}`);
     logger.info('Proof response keys:', Object.keys(proofResponse));
