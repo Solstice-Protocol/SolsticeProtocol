@@ -5,6 +5,7 @@ import bs58 from 'bs58';
 import { createSession, verifySession, closeSession } from '../utils/session.js';
 import { getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
+import { isValidWalletAddress, isValidTimestamp, isValidSignature } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -18,24 +19,39 @@ const connection = new Connection(
  */
 router.post('/create-session', async (req, res) => {
     try {
-        const { walletAddress, signature } = req.body;
+        const { walletAddress, signature, timestamp } = req.body;
 
-        if (!walletAddress || !signature) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!walletAddress || !signature || !timestamp) {
+            return res.status(400).json({ error: 'Missing required fields: walletAddress, signature, timestamp' });
+        }
+
+        // Validate wallet address format
+        if (!isValidWalletAddress(walletAddress)) {
+            return res.status(400).json({ error: 'Invalid wallet address format' });
+        }
+
+        // Validate signature format
+        if (!isValidSignature(signature)) {
+            return res.status(400).json({ error: 'Invalid signature format' });
+        }
+
+        // Verify timestamp is recent (within 5 minutes)
+        if (!isValidTimestamp(timestamp)) {
+            logger.warn(`Timestamp validation failed for wallet: ${walletAddress}`);
+            return res.status(401).json({ error: 'Timestamp must be within 5 minutes of current time' });
         }
 
         // Verify wallet ownership through signature
         try {
-            // The signature should be the wallet signing a standard message:
+            // The signature should be the wallet signing a message with timestamp:
             // "Sign this message to authenticate with Solstice Protocol: {timestamp}"
             const publicKey = new PublicKey(walletAddress);
             
             // Decode the signature from base58
             const signatureBuffer = bs58.decode(signature);
             
-            // Generate the message that was signed
-            // For security, should include a timestamp that's recent (within 5 minutes)
-            const messageStr = `Sign this message to authenticate with Solstice Protocol`;
+            // Generate the message that was signed with timestamp nonce
+            const messageStr = `Sign this message to authenticate with Solstice Protocol: ${timestamp}`;
             const messageBytes = new TextEncoder().encode(messageStr);
             
             // Verify the signature using ed25519

@@ -3,6 +3,7 @@ import { parseAadhaarQR, verifyAadhaarSignature } from '../utils/aadhaar.js';
 import { generateIdentityCommitment } from '../utils/crypto.js';
 import { storeIdentity, getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
+import { isValidWalletAddress, isValidCommitment, isValidTxSignature } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -61,6 +62,23 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        // Validate inputs
+        if (!isValidWalletAddress(walletAddress)) {
+            return res.status(400).json({ error: 'Invalid wallet address format' });
+        }
+
+        if (!isValidCommitment(commitment)) {
+            return res.status(400).json({ error: 'Invalid commitment format' });
+        }
+
+        if (!isValidCommitment(merkleRoot)) {
+            return res.status(400).json({ error: 'Invalid merkle root format' });
+        }
+
+        if (txSignature && !isValidTxSignature(txSignature)) {
+            return res.status(400).json({ error: 'Invalid transaction signature format' });
+        }
+
         // Store identity mapping in database
         await storeIdentity({
             wallet_address: walletAddress,
@@ -88,6 +106,10 @@ router.post('/register', async (req, res) => {
 router.get('/:walletAddress', async (req, res) => {
     try {
         const { walletAddress } = req.params;
+
+        if (!isValidWalletAddress(walletAddress)) {
+            return res.status(400).json({ error: 'Invalid wallet address format' });
+        }
 
         const identity = await getIdentity(walletAddress);
 

@@ -3,6 +3,7 @@ import { generateZKProof, verifyZKProof } from '../utils/zkproof.js';
 import { updateIdentityVerification } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import { isValidProofType, isValidWalletAddress, isValidTxSignature } from '../middleware/validation.js';
 
 const router = Router();
 
@@ -19,8 +20,7 @@ router.post('/generate', async (req, res) => {
         }
 
         // Validate attribute type
-        const validTypes = ['age', 'nationality', 'uniqueness'];
-        if (!validTypes.includes(attributeType)) {
+        if (!isValidProofType(attributeType)) {
             return res.status(400).json({ error: 'Invalid attribute type' });
         }
 
@@ -85,6 +85,21 @@ router.post('/submit', async (req, res) => {
 
         if (!walletAddress || !attributeType || !txSignature) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Validate wallet address
+        if (!isValidWalletAddress(walletAddress)) {
+            return res.status(400).json({ error: 'Invalid wallet address format' });
+        }
+
+        // Validate transaction signature
+        if (!isValidTxSignature(txSignature)) {
+            return res.status(400).json({ error: 'Invalid transaction signature format' });
+        }
+
+        // Validate proof type
+        if (!isValidProofType(attributeType)) {
+            return res.status(400).json({ error: 'Invalid attribute type' });
         }
 
         // Map attribute type to bitmap
