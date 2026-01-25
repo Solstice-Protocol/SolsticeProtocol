@@ -10,7 +10,7 @@
 
 Solstice Protocol transforms government-issued identity credentials into portable, privacy-preserving zero-knowledge proofs that can be verified across any Web3 application. By leveraging India's Aadhaar (1.4B users) and Solana's high-performance blockchain, Solstice achieves **5000x cost reduction** compared to traditional on-chain identity systems while maintaining cryptographic security and regulatory compliance.
 
-**✨ Now Live on Devnet**: Fully functional with camera QR scanning, automatic proof generation, and on-chain verification!
+** Now Live on Devnet**: Fully functional with camera QR scanning, automatic proof generation, and on-chain verification!
 
 ## 🏗️ Architecture: Challenge-Response Flow
 

@@ -6,35 +6,59 @@ let redisClient = null;
 let tokenRefreshInterval = null;
 
 /**
- * Initialize and connect to Azure Managed Redis using Microsoft Entra ID
+ * Initialize and connect to Azure Managed Redis
+ * Uses access key if REDIS_PASSWORD is set (local dev)
+ * Otherwise uses Microsoft Entra ID (production)
  */
 export async function connectRedis() {
     try {
-        // Use Azure Managed Identity for authentication
-        const credential = new DefaultAzureCredential();
-        
-        // Get access token for Azure Cache for Redis
-        const tokenResponse = await credential.getToken('https://redis.azure.com/.default');
-        
-        const config = {
-            socket: {
-                host: process.env.REDIS_HOST,
-                port: parseInt(process.env.REDIS_PORT || '10000'),
-                tls: true,
-                reconnectStrategy: (retries) => {
-                    if (retries > 10) {
-                        logger.error('Redis max reconnection attempts reached');
-                        return new Error('Max reconnection attempts reached');
+        let config;
+        let useEntraId = !process.env.REDIS_PASSWORD;
+
+        if (useEntraId) {
+            // Production: Use Microsoft Entra ID
+            logger.info('Connecting to Redis with Microsoft Entra ID');
+            const credential = new DefaultAzureCredential();
+            const tokenResponse = await credential.getToken('https://redis.azure.com/.default');
+            
+            config = {
+                socket: {
+                    host: process.env.REDIS_HOST,
+                    port: parseInt(process.env.REDIS_PORT || '10000'),
+                    tls: true,
+                    reconnectStrategy: (retries) => {
+                        if (retries > 10) {
+                            logger.error('Redis max reconnection attempts reached');
+                            return new Error('Max reconnection attempts reached');
+                        }
+                        return Math.min(retries * 50, 3000);
                     }
-                    // Exponential backoff: 50ms * 2^retries, max 3 seconds
-                    return Math.min(retries * 50, 3000);
-                }
-            },
-            // Use Entra ID token instead of password
-            username: process.env.REDIS_USERNAME || 'default',
-            password: tokenResponse.token,
-            database: parseInt(process.env.REDIS_DB || '0')
-        };
+                },
+                username: process.env.REDIS_USERNAME || 'default',
+                password: tokenResponse.token,
+                database: parseInt(process.env.REDIS_DB || '0')
+            };
+        } else {
+            // Local development: Use access key
+            logger.info('Connecting to Redis with access key (local dev)');
+            config = {
+                socket: {
+                    host: process.env.REDIS_HOST,
+                    port: parseInt(process.env.REDIS_PORT || '10000'),
+                    tls: true,
+                    reconnectStrategy: (retries) => {
+                        if (retries > 10) {
+                            logger.error('Redis max reconnection attempts reached');
+                            return new Error('Max reconnection attempts reached');
+                        }
+                        return Math.min(retries * 50, 3000);
+                    }
+                },
+                username: process.env.REDIS_USERNAME || 'default',
+                password: process.env.REDIS_PASSWORD,
+                database: parseInt(process.env.REDIS_DB || '0')
+            };
+        }
 
         redisClient = createClient(config);
 
@@ -48,7 +72,7 @@ export async function connectRedis() {
         });
 
         redisClient.on('ready', () => {
-            logger.info('✅ Redis client ready');
+            logger.info(' Redis client ready');
         });
 
         redisClient.on('reconnecting', () => {
@@ -64,25 +88,28 @@ export async function connectRedis() {
         
         // Test connection
         await redisClient.ping();
-        logger.info('✅ Azure Managed Redis connected with Microsoft Entra ID');
+        logger.info(` Azure Managed Redis connected ${useEntraId ? 'with Microsoft Entra ID' : 'with access key'}`);
 
-        // Set up automatic token refresh (Entra tokens expire after ~60 minutes)
-        tokenRefreshInterval = setInterval(async () => {
-            try {
-                const newToken = await credential.getToken('https://redis.azure.com/.default');
-                await redisClient.auth({ 
-                    username: config.username, 
-                    password: newToken.token 
-                });
-                logger.info('Redis Entra ID token refreshed successfully');
-            } catch (err) {
-                logger.error('Failed to refresh Redis token:', err);
-            }
-        }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens last ~60 min)
+        // Set up automatic token refresh (only for Entra ID)
+        if (useEntraId) {
+            const credential = new DefaultAzureCredential();
+            tokenRefreshInterval = setInterval(async () => {
+                try {
+                    const newToken = await credential.getToken('https://redis.azure.com/.default');
+                    await redisClient.auth({ 
+                        username: config.username, 
+                        password: newToken.token 
+                    });
+                    logger.info('Redis Entra ID token refreshed successfully');
+                } catch (err) {
+                    logger.error('Failed to refresh Redis token:', err);
+                }
+            }, 50 * 60 * 1000); // Refresh every 50 minutes (tokens last ~60 min)
+        }
 
         return redisClient;
     } catch (error) {
-        logger.error('Failed to connect to Redis with Entra ID:', error);
+        logger.error('Failed to connect to Redis:', error);
         throw error;
     }
 }

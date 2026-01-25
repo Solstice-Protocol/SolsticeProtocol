@@ -84,14 +84,14 @@ async function startServer() {
     try {
         // Connect to database
         await connectDB();
-        logger.info('✅ Database connected successfully');
+        logger.info(' Database connected successfully');
 
         // Connect to Redis with Microsoft Entra ID
         await connectRedis();
-        logger.info('✅ Redis connected successfully');
+        logger.info(' Redis connected successfully');
 
         app.listen(PORT, () => {
-            logger.info(`🚀 Solstice Protocol API running on port ${PORT}`);
+            logger.info(` Solstice Protocol API running on port ${PORT}`);
             logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
             logger.info(`🌐 Allowed origins: ${allowedOrigins.join(', ')}`);
         });
