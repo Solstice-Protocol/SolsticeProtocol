@@ -1,7 +1,22 @@
 import jwt from 'jsonwebtoken';
 import { logger } from './logger.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+let JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+    if (NODE_ENV !== 'development' && NODE_ENV !== 'test') {
+        throw new Error(
+            'JWT_SECRET environment variable must be set and at least 32 characters long in production-like environments'
+        );
+    }
+    logger.warn(
+        'JWT_SECRET is not set or is too weak; using an insecure fallback secret for development/test only. ' +
+        'Do NOT use this configuration in production.'
+    );
+    JWT_SECRET = 'fallback-secret-change-in-production-insecure-dev-only';
+}
+
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '1h';
 const JWT_REFRESH_EXPIRY = process.env.JWT_REFRESH_EXPIRY || '7d';
 
@@ -76,6 +91,15 @@ export function verifyToken(token) {
             issuer: 'solstice-protocol',
             audience: 'solstice-api'
         });
+        
+        // Ensure this is an access token, not a refresh token
+        if (decoded.type !== 'access') {
+            logger.warn('Invalid token type for access verification');
+            return {
+                valid: false,
+                error: 'Invalid token type'
+            };
+        }
         
         return {
             valid: true,

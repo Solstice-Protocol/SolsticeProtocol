@@ -3,10 +3,10 @@ import { Connection, PublicKey } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import { v4 as uuidv4 } from 'uuid';
-import { signToken, signRefreshToken, verifyToken, verifyRefreshToken, authenticateJWT } from '../utils/jwt.js';
+import { signToken, signRefreshToken, verifyToken, verifyRefreshToken } from '../utils/jwt.js';
 import { getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
-import { rateLimiter, challengeManager, sessionManager } from '../utils/redis.js';
+import { rateLimiter, sessionManager } from '../utils/redis.js';
 
 const router = Router();
 

@@ -321,14 +321,32 @@ export const cache = {
 
     /**
      * Invalidate all cache entries matching a pattern
+     * Uses SCAN to avoid blocking Redis (safe for production)
      * @param {string} pattern - Pattern to match (e.g., 'user:123:*')
      */
     async invalidatePattern(pattern) {
         const client = getRedisClient();
-        const keys = await client.keys(`cache:${pattern}`);
-        if (keys.length > 0) {
-            await client.del(keys);
-            logger.debug(`Invalidated ${keys.length} cache entries for pattern: ${pattern}`);
+        const matchPattern = `cache:${pattern}`;
+        let cursor = 0;
+        let totalDeleted = 0;
+        const batchSize = 1000;
+        
+        do {
+            const reply = await client.scan(cursor, {
+                MATCH: matchPattern,
+                COUNT: batchSize
+            });
+            cursor = Number(reply.cursor);
+            const keys = reply.keys;
+            
+            if (keys && keys.length > 0) {
+                const deleted = await client.del(keys);
+                totalDeleted += deleted;
+            }
+        } while (cursor !== 0);
+        
+        if (totalDeleted > 0) {
+            logger.debug(`Invalidated ${totalDeleted} cache entries for pattern: ${pattern}`);
         }
     }
 };

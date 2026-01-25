@@ -3,7 +3,7 @@ import { generateZKProof, verifyZKProof } from '../utils/zkproof.js';
 import { updateIdentityVerification } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
-import { rateLimiter, cache } from '../utils/redis.js';
+import { rateLimiter } from '../utils/redis.js';
 
 const router = Router();
 
