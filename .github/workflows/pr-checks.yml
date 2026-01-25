@@ -54,17 +54,3 @@ jobs:
       - name: Check code formatting
         working-directory: ./backend
         run: npx prettier --check "src/**/*.js" || echo "No prettier config found"
-
-  copilot-review:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: GitHub Copilot PR Review
-        uses: github/gh-copilot-review@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
