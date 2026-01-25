@@ -1,0 +1,74 @@
+version: 2
+updates:
+  # Backend dependencies
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "backend"
+    reviewers:
+      - "Shaurya2k06"
+    commit-message:
+      prefix: "chore(backend)"
+      include: "scope"
+  
+  # Circuits dependencies
+  - package-ecosystem: "npm"
+    directory: "/circuits"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "circuits"
+    reviewers:
+      - "Shaurya2k06"
+    commit-message:
+      prefix: "chore(circuits)"
+  
+  # Contracts dependencies (Cargo/Rust)
+  - package-ecosystem: "cargo"
+    directory: "/contracts/programs/contracts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "contracts"
+    reviewers:
+      - "Shaurya2k06"
+    commit-message:
+      prefix: "chore(contracts)"
+  
+  # Contracts dependencies (npm for TypeScript)
+  - package-ecosystem: "npm"
+    directory: "/contracts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "contracts"
+    reviewers:
+      - "Shaurya2k06"
+    commit-message:
+      prefix: "chore(contracts)"
+  
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"

@@ -3,6 +3,7 @@ import { generateZKProof, verifyZKProof } from '../utils/zkproof.js';
 import { updateIdentityVerification } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import { rateLimiter, cache } from '../utils/redis.js';
 
 const router = Router();
 
@@ -16,6 +17,15 @@ router.post('/generate', async (req, res) => {
 
         if (!attributeType || !privateInputs || !publicInputs) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Rate limiting - 20 proof generations per hour per IP
+        const limit = await rateLimiter.checkLimit(`proof:${req.ip}`, 20, 3600);
+        if (!limit.allowed) {
+            return res.status(429).json({ 
+                error: 'Too many proof generation requests. Try again later.',
+                resetTime: limit.resetTime
+            });
         }
 
         // Validate attribute type
