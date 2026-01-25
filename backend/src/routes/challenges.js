@@ -289,34 +289,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * GET /api/challenges
- * List all challenges (for debugging in development)
- */
-router.get('/', async (req, res) => {
-  try {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(403).json({ error: 'Endpoint only available in development' });
-    }
-
-    const allChallenges = Array.from(challenges.values()).map(c => ({
-      challengeId: c.challengeId,
-      appName: c.appName,
-      status: c.status,
-      proofType: c.proofType,
-      createdAt: c.createdAt,
-      expiresAt: c.expiresAt
-    }));
-
-    res.json({
-      success: true,
-      count: allChallenges.length,
-      challenges: allChallenges
-    });
-  } catch (error) {
-    logger.error('Error listing challenges:', error);
-    res.status(500).json({ error: 'Failed to list challenges' });
-  }
-});
-
 export default router;

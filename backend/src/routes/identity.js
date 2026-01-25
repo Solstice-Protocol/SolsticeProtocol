@@ -119,8 +119,8 @@ router.get('/:walletAddress', async (req, res) => {
         await cache.set(`identity:${walletAddress}`, {
             walletAddress: identity.wallet_address,
             isVerified: identity.is_verified,
-            attributesVerified: identity.attributes_verified,
-            createdAt: identity.created_at
+            verificationTimestamp: identity.verification_timestamp,
+            attributesVerified: identity.attributes_verified
         }, 300);
 
         res.json({
