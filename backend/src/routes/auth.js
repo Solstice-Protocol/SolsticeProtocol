@@ -2,9 +2,11 @@ import { Router } from 'express';
 import { Connection, PublicKey } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
-import { createSession, verifySession, closeSession } from '../utils/session.js';
+import { v4 as uuidv4 } from 'uuid';
+import { signToken, signRefreshToken, verifyToken, verifyRefreshToken, authenticateJWT } from '../utils/jwt.js';
 import { getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
+import { rateLimiter, challengeManager, sessionManager } from '../utils/redis.js';
 
 const router = Router();
 
@@ -22,6 +24,15 @@ router.post('/create-session', async (req, res) => {
 
         if (!walletAddress || !signature) {
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Rate limiting - 5 attempts per 5 minutes per wallet
+        const limit = await rateLimiter.checkLimit(`auth:${walletAddress}`, 5, 300);
+        if (!limit.allowed) {
+            return res.status(429).json({ 
+                error: 'Too many authentication attempts. Try again later.',
+                resetTime: limit.resetTime
+            });
         }
 
         // Verify wallet ownership through signature
@@ -63,14 +74,43 @@ router.post('/create-session', async (req, res) => {
             return res.status(403).json({ error: 'Identity not verified' });
         }
 
-        // Create session
-        const session = await createSession(walletAddress);
+        // Generate session ID
+        const sessionId = uuidv4();
+        
+        // Generate JWT access and refresh tokens
+        const accessToken = signToken({
+            walletAddress,
+            sessionId,
+            identityId: identity.id,
+            isVerified: identity.is_verified
+        });
+        
+        const refreshToken = signRefreshToken({
+            walletAddress,
+            sessionId
+        });
+        
+        // Store session in Redis for tracking and invalidation
+        await sessionManager.setSession(sessionId, {
+            sessionId,
+            walletAddress,
+            identityId: identity.id,
+            authenticated: true,
+            createdAt: Date.now()
+        }, 86400); // 24 hours
+        
+        // Calculate expiry time
+        const expiresAt = Date.now() + (3600 * 1000); // 1 hour for access token
+
+        logger.info(`JWT session created for wallet: ${walletAddress}`);
 
         res.json({
             success: true,
-            sessionId: session.sessionId,
-            token: session.token,
-            expiresAt: session.expiresAt
+            sessionId,
+            token: accessToken,
+            refreshToken,
+            expiresAt,
+            tokenType: 'Bearer'
         });
 
     } catch (error) {
@@ -81,7 +121,7 @@ router.post('/create-session', async (req, res) => {
 
 /**
  * POST /api/auth/verify-session
- * Verify authentication session token
+ * Verify JWT authentication token
  */
 router.post('/verify-session', async (req, res) => {
     try {
@@ -91,27 +131,39 @@ router.post('/verify-session', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
-        const session = await verifySession(token);
+        // Verify JWT token
+        const verification = verifyToken(token);
 
-        if (!session.valid) {
-            return res.status(401).json({ error: 'Invalid or expired session' });
+        if (!verification.valid) {
+            return res.status(401).json({ 
+                error: 'Invalid or expired token',
+                reason: verification.error
+            });
+        }
+        
+        // Check if session still exists in Redis
+        const sessionExists = await sessionManager.exists(verification.sessionId);
+        if (!sessionExists) {
+            return res.status(401).json({ error: 'Session has been invalidated' });
         }
 
         res.json({
             success: true,
-            walletAddress: session.walletAddress,
-            expiresAt: session.expiresAt
+            walletAddress: verification.walletAddress,
+            sessionId: verification.sessionId,
+            expiresAt: verification.expiresAt,
+            issuedAt: verification.issuedAt
         });
 
     } catch (error) {
-        logger.error('Error verifying session:', error);
-        res.status(500).json({ error: 'Failed to verify session' });
+        logger.error('Error verifying JWT token:', error);
+        res.status(500).json({ error: 'Failed to verify token' });
     }
 });
 
 /**
  * POST /api/auth/close-session
- * Close authentication session
+ * Close authentication session and invalidate JWT
  */
 router.post('/close-session', async (req, res) => {
     try {
@@ -121,17 +173,17 @@ router.post('/close-session', async (req, res) => {
             return res.status(400).json({ error: 'Token is required' });
         }
 
-        // Verify session exists before closing
-        const session = await verifySession(token);
+        // Verify JWT token
+        const verification = verifyToken(token);
         
-        if (!session.valid) {
+        if (!verification.valid) {
             return res.status(404).json({ error: 'Session not found or already expired' });
         }
 
-        // Close session
-        await closeSession(token);
+        // Delete session from Redis to invalidate all tokens with this sessionId
+        await sessionManager.deleteSession(verification.sessionId);
         
-        logger.info(`Session closed for wallet: ${session.walletAddress}`);
+        logger.info(`JWT session closed for wallet: ${verification.walletAddress}`);
 
         res.json({
             success: true,
@@ -141,6 +193,59 @@ router.post('/close-session', async (req, res) => {
     } catch (error) {
         logger.error('Error closing session:', error);
         res.status(500).json({ error: 'Failed to close session' });
+    }
+});
+
+/**
+ * POST /api/auth/refresh-token
+ * Refresh access token using refresh token
+ */
+router.post('/refresh-token', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(400).json({ error: 'Refresh token is required' });
+        }
+
+        // Verify refresh token
+        const verification = verifyRefreshToken(refreshToken);
+
+        if (!verification.valid) {
+            return res.status(401).json({ 
+                error: 'Invalid or expired refresh token',
+                reason: verification.error
+            });
+        }
+
+        // Check if session still exists in Redis
+        const session = await sessionManager.getSession(verification.sessionId);
+        if (!session) {
+            return res.status(401).json({ error: 'Session has been invalidated' });
+        }
+
+        // Generate new access token
+        const newAccessToken = signToken({
+            walletAddress: verification.walletAddress,
+            sessionId: verification.sessionId,
+            identityId: session.identityId,
+            isVerified: true
+        });
+
+        const expiresAt = Date.now() + (3600 * 1000); // 1 hour
+
+        logger.info(`Access token refreshed for wallet: ${verification.walletAddress}`);
+
+        res.json({
+            success: true,
+            token: newAccessToken,
+            expiresAt,
+            tokenType: 'Bearer'
+        });
+
+    } catch (error) {
+        logger.error('Error refreshing token:', error);
+        res.status(500).json({ error: 'Failed to refresh token' });
     }
 });
 

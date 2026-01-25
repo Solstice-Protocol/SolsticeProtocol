@@ -1,22 +1,11 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
+import { challengeManager, rateLimiter } from '../utils/redis.js';
 
 const router = express.Router();
 
-// In-memory storage for challenges (in production, use a database)
-const challenges = new Map();
-
-// Cleanup expired challenges every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, challenge] of challenges.entries()) {
-    if (challenge.expiresAt < now) {
-      challenges.delete(id);
-      logger.info(`Deleted expired challenge: ${id}`);
-    }
-  }
-}, 5 * 60 * 1000);
+// No longer using in-memory storage - using Redis instead
 
 /**
  * POST /api/challenges/create
@@ -32,9 +21,19 @@ router.post('/create', async (req, res) => {
       });
     }
 
+    // Rate limiting - 30 challenges per hour per appId
+    const limit = await rateLimiter.checkLimit(`challenge:${appId}`, 30, 3600);
+    if (!limit.allowed) {
+      return res.status(429).json({ 
+        error: 'Too many challenge creation requests. Try again later.',
+        resetTime: limit.resetTime
+      });
+    }
+
     const challengeId = uuidv4();
     const now = Date.now();
-    const expiresAt = now + ((expirationSeconds || 300) * 1000); // Default 5 minutes
+    const expirySeconds = expirationSeconds || 300; // Default 5 minutes
+    const expiresAt = now + (expirySeconds * 1000);
 
     const challenge = {
       challengeId,
@@ -50,7 +49,8 @@ router.post('/create', async (req, res) => {
       proofResponse: null
     };
 
-    challenges.set(challengeId, challenge);
+    // Store in Redis with TTL (auto-expires)
+    await challengeManager.setChallenge(challengeId, JSON.stringify(challenge), expirySeconds);
 
     logger.info(`Created challenge ${challengeId} for app ${appId}`);
 
@@ -81,16 +81,25 @@ router.post('/create', async (req, res) => {
 router.get('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const challenge = challenges.get(id);
+    const challengeData = await challengeManager.getAndDeleteChallenge(id);
 
-    if (!challenge) {
-      return res.status(404).json({ error: 'Challenge not found' });
+    if (!challengeData) {
+      return res.status(404).json({ error: 'Challenge not found or expired' });
     }
+
+    const challenge = JSON.parse(challengeData);
 
     // Check expiration
     if (Date.now() > challenge.expiresAt && challenge.status === 'pending') {
       challenge.status = 'expired';
-      challenges.set(id, challenge);
+    }
+
+    // If not consuming (just checking status), put it back
+    if (challenge.status === 'pending') {
+      const ttl = Math.floor((challenge.expiresAt - Date.now()) / 1000);
+      if (ttl > 0) {
+        await challengeManager.setChallenge(id, JSON.stringify(challenge), ttl);
+      }
     }
 
     res.json({
@@ -114,14 +123,13 @@ router.post('/:id/respond', async (req, res) => {
     const { id } = req.params;
     const proofResponse = req.body;
 
-    logger.info(`Received proof response for challenge ${id}`);
-    logger.info('Proof response keys:', Object.keys(proofResponse));
+    const challengeData = await challengeManager.getAndDeleteChallenge(id);
 
-    const challenge = challenges.get(id);
-
-    if (!challenge) {
-      return res.status(404).json({ error: 'Challenge not found' });
+    if (!challengeData) {
+      return res.status(404).json({ error: 'Challenge not found or expired' });
     }
+
+    const challenge = JSON.parse(challengeData);
 
     if (challenge.status !== 'pending') {
       logger.warn(`Challenge ${id} is ${challenge.status}, expected pending`);
@@ -129,8 +137,6 @@ router.post('/:id/respond', async (req, res) => {
     }
 
     if (Date.now() > challenge.expiresAt) {
-      challenge.status = 'expired';
-      challenges.set(id, challenge);
       return res.status(400).json({ error: 'Challenge has expired' });
     }
 
@@ -153,7 +159,9 @@ router.post('/:id/respond', async (req, res) => {
     challenge.status = 'completed';
     challenge.proofResponse = proofResponse;
     challenge.completedAt = Date.now();
-    challenges.set(id, challenge);
+    
+    // Store completed challenge for verification (30 minute TTL)
+    await challengeManager.setChallenge(id, JSON.stringify(challenge), 1800);
 
     logger.info(`Challenge ${id} completed with proof`);
 
@@ -192,13 +200,20 @@ router.post('/:id/verify', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const challenge = challenges.get(id);
+    const challengeData = await challengeManager.getAndDeleteChallenge(id);
 
-    if (!challenge) {
-      return res.status(404).json({ error: 'Challenge not found' });
+    if (!challengeData) {
+      return res.status(404).json({ error: 'Challenge not found or expired' });
     }
 
+    const challenge = JSON.parse(challengeData);
+
     if (challenge.status !== 'completed') {
+      // Put it back if not completed
+      const ttl = Math.floor((challenge.expiresAt - Date.now()) / 1000);
+      if (ttl > 0) {
+        await challengeManager.setChallenge(id, JSON.stringify(challenge), ttl);
+      }
       return res.status(400).json({
         error: `Challenge is ${challenge.status}`,
         verified: false
@@ -247,10 +262,18 @@ router.post('/:id/verify', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const challenge = challenges.get(id);
+    const challengeData = await challengeManager.getAndDeleteChallenge(id);
 
-    if (!challenge) {
-      return res.status(404).json({ error: 'Challenge not found' });
+    if (!challengeData) {
+      return res.status(404).json({ error: 'Challenge not found or expired' });
+    }
+
+    const challenge = JSON.parse(challengeData);
+    
+    // Put it back with remaining TTL
+    const ttl = Math.floor((challenge.expiresAt - Date.now()) / 1000);
+    if (ttl > 0) {
+      await challengeManager.setChallenge(id, challengeData, ttl);
     }
 
     // Don't expose proof response in public endpoint

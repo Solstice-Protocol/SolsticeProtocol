@@ -3,6 +3,7 @@ import { parseAadhaarQR, verifyAadhaarSignature } from '../utils/aadhaar.js';
 import { generateIdentityCommitment } from '../utils/crypto.js';
 import { storeIdentity, getIdentity } from '../db/queries.js';
 import { logger } from '../utils/logger.js';
+import { rateLimiter, cache } from '../utils/redis.js';
 
 const router = Router();
 
@@ -16,6 +17,15 @@ router.post('/parse-qr', async (req, res) => {
 
         if (!qrData) {
             return res.status(400).json({ error: 'QR data is required' });
+        }
+
+        // Rate limiting - 10 QR scans per minute per IP
+        const limit = await rateLimiter.checkLimit(`qr:${req.ip}`, 10, 60);
+        if (!limit.allowed) {
+            return res.status(429).json({ 
+                error: 'Too many QR scan attempts. Try again later.',
+                resetTime: limit.resetTime
+            });
         }
 
         // Parse QR code
@@ -89,11 +99,29 @@ router.get('/:walletAddress', async (req, res) => {
     try {
         const { walletAddress } = req.params;
 
+        // Try cache first
+        const cached = await cache.get(`identity:${walletAddress}`);
+        if (cached) {
+            logger.debug(`Cache hit for identity: ${walletAddress}`);
+            return res.json({
+                success: true,
+                identity: cached
+            });
+        }
+
         const identity = await getIdentity(walletAddress);
 
         if (!identity) {
             return res.status(404).json({ error: 'Identity not found' });
         }
+
+        // Cache for 5 minutes
+        await cache.set(`identity:${walletAddress}`, {
+            walletAddress: identity.wallet_address,
+            isVerified: identity.is_verified,
+            attributesVerified: identity.attributes_verified,
+            createdAt: identity.created_at
+        }, 300);
 
         res.json({
             success: true,

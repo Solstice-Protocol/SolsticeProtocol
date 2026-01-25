@@ -4,11 +4,60 @@ on:
   push:
     branches:
       - main
+      - deployment  # Also deploy from deployment branch
+    paths:
+      - 'backend/**'
+      - 'circuits/**'
+      - '.github/workflows/azure-deploy.yml'
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
 
 jobs:
+  # Preview deployment info on PRs
+  preview:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Comment PR with deployment preview
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 🚀 Deployment Preview
+            
+            **Branch:** \`${context.payload.pull_request.head.ref}\`
+            **Target:** Azure App Service (\`solstice-api\`)
+            
+            ⚠️ **This PR will NOT auto-deploy.** 
+            
+            To deploy:
+            1. Merge this PR to \`main\` or \`deployment\` branch
+            2. Or manually trigger deployment from [Actions](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/azure-deploy.yml)
+            
+            **Deployment URL:** https://solstice-api.azurewebsites.net
+            **Health Check:** https://solstice-api.azurewebsites.net/health
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Only deploy on push to main/deployment, not on PRs
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +78,20 @@ jobs:
           cp -r circuits deploy-package/
           
       - name: Deploy to Azure Web App
+        id: deploy
         uses: azure/webapps-deploy@v2
         with:
           app-name: 'solstice-api'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./deploy-package
+      
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App Service:** solstice-api" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** https://solstice-api.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "**Health Check:** https://solstice-api.azurewebsites.net/health" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
