@@ -18,7 +18,7 @@
   "author": "Solstice Protocol Team",
   "license": "MIT",
   "dependencies": {
-    "@azure/identity": "^4.0.0",
+    "@azure/identity": "^4.13.1",
     "@solana/web3.js": "^1.98.4",
     "bs58": "^5.0.0",
     "bull": "^4.12.0",
