@@ -12,7 +12,7 @@ Solstice Protocol transforms government-issued identity credentials into portabl
 
 ** Now Live on Devnet**: Fully functional with camera QR scanning, automatic proof generation, and on-chain verification!
 
-## 🏗️ Architecture: Challenge-Response Flow
+##  Architecture: Challenge-Response Flow
 
 Solstice uses a **challenge-response architecture** to protect user privacy:
 

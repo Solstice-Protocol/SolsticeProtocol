@@ -71,7 +71,7 @@ function generateRustConst(circuitName, vkeyBytes) {
  * Main export function
  */
 async function exportVerificationKeys() {
-    console.log('🔑 Exporting verification keys...\n');
+    console.log(' Exporting verification keys...\n');
     
     const rustConsts = [];
     
